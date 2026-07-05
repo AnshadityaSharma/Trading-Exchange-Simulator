@@ -58,3 +58,31 @@ Written as interview prep: each entry answers "why did you do it this way?"
 **Decision:** `cancel(orderId)` returns `false` for unknown, already-filled, and already-canceled orders alike.
 
 **Why:** In all three cases the caller's situation is identical — there is nothing left to cancel — and distinguishing them would require keeping terminal orders in memory forever. The order-history record in Postgres (Phase 3) is the place to answer "what happened to order X", not the engine's hot-path map.
+
+---
+
+## Phase 2 — Benchmark harness
+
+### D8. Throughput and latency are measured in separate passes
+
+**Decision:** `bench/engine-bench.ts` runs a throughput pass (one clock read per 1M-op run) and a separate latency pass (every op individually timed with `process.hrtime.bigint()`).
+
+**Why:** Reading the clock costs real time — an empty `hrtime.bigint()` pair measures ~100ns on this machine, and the engine's median op is ~300ns. Timing every op inside the throughput run would roughly double per-op cost and understate throughput by a third. Splitting the passes means each number is clean: throughput has near-zero measurement overhead, and the latency pass *reports* its clock overhead instead of hiding it (it's included, not subtracted — subtracting a median from individual samples would fabricate precision).
+
+### D9. Deterministic seeded workload, run on compiled JS
+
+**Decision:** The synthetic flow comes from a seeded xorshift32 PRNG, so every benchmark run replays the byte-identical order stream. The `bench` script compiles with `tsc` first and runs plain `node` on the output.
+
+**Why:** Determinism makes runs comparable across engine changes — a regression is a real regression, not workload noise. Running compiled JS (not a transpile-on-the-fly runner) means the numbers measure the engine, not tooling overhead, and match how production would run.
+
+### D10. Workload mix: 70% limit / 10% market / 20% cancel, cancels target random live orders
+
+**Decision:** Cancels pick a random previously-rested order ID; a picked ID is removed from tracking whether or not the cancel succeeds (the order may have been filled since).
+
+**Why:** Roughly mirrors real venue flow, where cancel-to-trade ratios are high and cancels frequently race fills (the "stale cancel" is a real, common path — it must be cheap, and the O(1) map-miss makes it so). Measured composition: about a third of limits fill on arrival and two-thirds rest, and ~81% of cancel attempts are stale. Because stale cancels (hashmap misses) are far cheaper than real ones (unlink from the book), the harness reports cancel-hit and cancel-miss as separate latency distributions — averaging them would publish a number that mostly measures the miss path.
+
+### D11. The price band is a CLI knob to stress the sorted-array choice
+
+**Decision:** `npm run bench -- 5000` widens the price band from ±50 to ±5000 ticks (≤101 → ≤10,001 distinct levels per side).
+
+**Why:** The one theoretical weakness of the sorted price array (D2) is the O(L) splice when inserting a new level away from the best. The deep-book run is the direct experimental test of that concern: with 100× more levels, mean throughput is indistinguishable from the default run (run-to-run noise on this laptop is larger than any level-count effect) and submit p99 moves 1.5µs → 1.9µs (see bench/results.md). The flat p99 is the evidence — not a hand-wave — that the array beats a hand-rolled balanced tree here. Throughput deltas below ~10% should never be quoted from single runs on this machine.
