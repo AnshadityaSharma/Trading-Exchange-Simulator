@@ -1,0 +1,17 @@
+{
+  "name": "trading-exchange-simulator",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Live paper-trading exchange with an in-memory price-time priority matching engine",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.2.0"
+  }
+}
