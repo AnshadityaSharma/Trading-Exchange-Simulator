@@ -7,7 +7,8 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "bench": "tsc && node dist/bench/engine-bench.js"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
