@@ -342,6 +342,42 @@ describe('self-trade prevention (cancel-resting)', () => {
     expect(engine.bestAsk()).toBeUndefined();
   });
 
+  it('cancels an own order sitting behind another user in the same level queue', () => {
+    const other = sell(2, 30, 5000); // head of the 5000 level
+    const own = sell(1, 30, 5000); // user 1 queued behind
+    const res = buy(1, 60, 5000);
+    expect(res.fills).toHaveLength(1);
+    expect(res.fills[0]!.makerOrderId).toBe(other.orderId);
+    expect(res.selfTradeCanceledOrderIds).toEqual([own.orderId]);
+    // 30 filled, own 30 self-canceled, remaining 30 rests.
+    expect(res.status).toBe('partial-resting');
+    expect(res.restingQty).toBe(30);
+    expect(engine.depth().asks).toEqual([]);
+  });
+
+  it('self-cancels a partially-filled own order, removing only its open quantity', () => {
+    const own = sell(1, 100, 5000);
+    buy(2, 30, 5000); // own order is now 30/100 filled
+    const res = buy(1, 70, 5000); // user 1 crosses their own remainder
+    expect(res.selfTradeCanceledOrderIds).toEqual([own.orderId]);
+    expect(res.fills).toEqual([]);
+    expect(res.status).toBe('resting');
+    // Level bookkeeping subtracted the 70 open, not the original 100.
+    expect(engine.depth().asks).toEqual([]);
+    expect(engine.bestAsk()).toBeUndefined();
+  });
+
+  it('rests a limit order whose only book interaction was a self-trade cancel', () => {
+    sell(1, 50, 5000); // user 1's own quote is the entire opposite side
+    const res = buy(1, 50, 5000);
+    expect(res.status).toBe('resting');
+    expect(res.fills).toEqual([]);
+    expect(res.selfTradeCanceledOrderIds).toHaveLength(1);
+    expect(res.restingQty).toBe(50);
+    expect(engine.bestBid()).toBe(5000);
+    expect(engine.bestAsk()).toBeUndefined();
+  });
+
   it('does not cancel own orders at levels the incoming order never reaches', () => {
     sell(2, 50, 5000);
     const own = sell(1, 50, 5010); // behind the touch
