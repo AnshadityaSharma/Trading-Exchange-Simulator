@@ -145,6 +145,11 @@ export class MatchingEngine {
     return { bids: this.bids.depth(levels), asks: this.asks.depth(levels) };
   }
 
+  /** Number of orders currently resting on the book. For observability and the bench. */
+  restingOrderCount(): number {
+    return this.orders.size;
+  }
+
   /** Unfilled qty of a resting order, or undefined if not resting. For tests/API. */
   openQty(orderId: number): number | undefined {
     const node = this.orders.get(orderId);

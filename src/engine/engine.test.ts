@@ -421,6 +421,18 @@ describe('book state and depth bookkeeping', () => {
     expect(engine.depth().asks).toEqual([{ price: 5000, qty: 63 }]);
   });
 
+  it('counts resting orders, excluding filled and canceled ones', () => {
+    expect(engine.restingOrderCount()).toBe(0);
+    buy(1, 10, 4990);
+    const b = buy(2, 10, 5000);
+    sell(3, 10, 5010);
+    expect(engine.restingOrderCount()).toBe(3);
+    engine.cancel(b.orderId);
+    expect(engine.restingOrderCount()).toBe(2);
+    buyMkt(4, 10); // fills the resting ask
+    expect(engine.restingOrderCount()).toBe(1);
+  });
+
   it('re-adding a price level after it empties works cleanly', () => {
     sell(1, 10, 5000);
     buyMkt(2, 10); // empties the 5000 level
