@@ -102,3 +102,45 @@ Written as interview prep: each entry answers "why did you do it this way?"
 **Decision:** `GET /api/instruments/:symbol/stats` (last price, 24h open/high/low/volume) is part of v1. The API sends no derived or rounded values (no change %, no averages) — clients compute those from exact integers.
 
 **Why:** Every trading UI header needs these numbers; leaving it out would either break the freeze later or force the frontend to derive stats from the trade tape client-side (wrong place — it would need the full 24h tape). Excluding derived values keeps the no-floats/no-rounding invariant of the whole API (see D1).
+
+### D14. Write-behind persistence: latest-wins coalescing, idempotent statements, bounded loss window
+
+**Decision:** The engine/exchange never awaits Postgres. All mutations enqueue into `src/db/write-behind.ts`; a 50ms timer flushes each batch in one transaction. Rows whose final state is all that matters (orders, balances, positions) coalesce in latest-wins maps; append-only events (fills, trades) are inserts with `ON CONFLICT DO NOTHING`. All flushes — timer, shutdown, tests — serialize through one promise chain.
+
+**Why:** A synchronous DB commit per order would put a ~1ms+ round trip inside every submission — a 1000× tax on a 0.7ms request. The cost of async persistence is a crash-loss window of ≤ ~100ms of history, which is acceptable for paper trading and stated openly. Coalescing means a burst of updates to one order/balance writes one row per flush, and idempotent statements make a retried flush after a mid-transaction failure harmless. The promise chain exists because an early version had a `flushing` boolean guard, which made an explicit `flush()` silently no-op while a timer flush was in flight — a race that would have produced flaky reads.
+
+### D15. Boot reconciliation: orphaned open orders are canceled on restart
+
+**Decision:** At boot (before accepting traffic), any order still `open`/`partially_filled` in the DB is marked canceled and its reservation released, in one transaction (`reconcileOpenOrders`).
+
+**Why:** The order book lives only in memory — it dies with the process, so a DB row claiming an order is open after a restart is a lie that would strand the user's reserved cash/position forever. Cancel-on-restart is what the user would want (their quote is gone from the market either way) and is infinitely simpler than book reconstruction from the order log, which would also have to replay every fill that happened... against an empty book. Real exchanges solve this with replicated engines; a portfolio project solves it by being honest about restarts.
+
+### D16. Funds and positions: in-memory authority, reservation-based, no shorting
+
+**Decision:** Account state (cash, reserved cash, positions) lives in memory (`accounts.ts`), checked and mutated synchronously on the order path; Postgres is the durable journal reloaded at boot. Buy limits reserve `price×qty` at submit; fills release at the limit price and spend at the fill price (price improvement refunds the buyer). Sells reserve position quantity. Market buys don't reserve — the exact sweep cost is computed against the live book (single-threaded, so nothing can change between check and execution). Cost basis leaves a position proportionally with integer floor division, with the final lot absorbing the rounding residue so a closed position has exactly zero basis.
+
+**Why:** The funds check is on every order — it must be memory-speed, and single-threaded execution makes check-then-act atomic without locks. Reservations (rather than checking free balance at fill time) guarantee a resting order can always pay for its own fill, which is what makes the no-shorting and no-negative-cash invariants provable rather than hopeful.
+
+### D17. Book deltas: diff of the top-50 window, absolute quantities
+
+**Decision:** After every submit/cancel, the exchange diffs the engine's current top-50 depth against the previously broadcast window and emits one `book_delta` with absolute per-level quantities (`[price, 0]` = level gone). The book sequence increments once per broadcast message.
+
+**Why:** The contract promises exact window semantics ("deltas outside the top 50 are not sent") and gap-free per-channel sequences (D12). Diffing the window handles every edge case uniformly — levels entering the window because a better level emptied, levels leaving it, partial fills — where the tempting alternative (track which prices an operation touched) misses the enter-the-window case entirely and would have shipped a subtle client-side corruption. Absolute quantities make each delta self-contained: applying it can never compound an earlier error.
+
+### D18. Stateless JWT auth with bcryptjs
+
+**Decision:** Signup/login issue a 7-day JWT; `requireAuth` verifies it per request. Passwords hash with bcryptjs (pure JS). No session table, no refresh tokens, no revocation.
+
+**Why:** CLAUDE.md §2 caps auth at email+password. Stateless tokens mean zero DB reads on the request hot path for auth. The known tradeoff — a stolen token works until expiry — is acceptable for virtual money. bcryptjs over native bcrypt/argon2 trades ~2× hashing speed (only paid at login) for zero native-build friction on Windows dev and any deploy target.
+
+### D19. HTTP benchmark: report queueing-aware numbers, control against a no-op endpoint
+
+**Decision:** The HTTP-path benchmark (`bench/http-bench.ts`) reports client-observed latency AND explains it via Little's law, with a `GET /api/health` control run separating express/loopback overhead from exchange work. Server-side per-order cost is derived as 1/throughput, not read off the latency percentiles.
+
+**Why:** With N clients saturating one server thread, observed latency ≈ N ÷ throughput regardless of how fast the server is — publishing "p50 = 13.8ms" without that context would invite the false conclusion that an order takes 13.8ms to process (it takes ~0.74ms; the rest is queueing in the client's own concurrency). The health-endpoint control (~0.26ms/request) shows ~65% of the per-order cost is the generic HTTP/JSON/routing layer, not the exchange — i.e. the engine is 0.07% of request cost, so optimizing it further is pointless for the HTTP path (see bench/results.md).
+
+### D20. History reads drain the write-behind queue first (read-your-writes)
+
+**Decision:** The GET endpoints that read persisted state (`/orders`, `/orders/:id`, `/fills`, `/orders/:id/explain`, and the closed-order lookup inside cancel) call `wb.flush()` before querying Postgres.
+
+**Why:** `POST /orders` returns 201 synchronously, but persistence is async (D14) — without this, a client that reads back its own just-placed order would get a 404 for up to a flush window (~50ms, unbounded under retry), and canceling an order that filled within that window returned `NOT_FOUND` instead of `ORDER_NOT_OPEN`. Both were flagged in the Phase 3 review. Flushing on read gives read-your-writes consistency at the cost of one (batched, serialized) flush per read; reads are human-frequency, far off the hot path, so the cost is irrelevant. The alternative — serving order/fill history from the in-memory records — would duplicate the query layer and re-introduce the open/closed-order bookkeeping the DB already owns.
