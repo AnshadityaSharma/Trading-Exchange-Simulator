@@ -86,3 +86,19 @@ Written as interview prep: each entry answers "why did you do it this way?"
 **Decision:** `npm run bench -- 5000` widens the price band from ±50 to ±5000 ticks (≤101 → ≤10,001 distinct levels per side).
 
 **Why:** The one theoretical weakness of the sorted price array (D2) is the O(L) splice when inserting a new level away from the best. The deep-book run is the direct experimental test of that concern: with 100× more levels, mean throughput is indistinguishable from the default run (run-to-run noise on this laptop is larger than any level-count effect) and submit p99 moves 1.5µs → 1.9µs (see bench/results.md). The flat p99 is the evidence — not a hand-wave — that the array beats a hand-rolled balanced tree here. Throughput deltas below ~10% should never be quoted from single runs on this machine.
+
+---
+
+## Phase 3 — Server layer
+
+### D12. Market-data sequence numbers are independent per channel, per instrument
+
+**Decision:** `book:<SYMBOL>` and `trades:<SYMBOL>` each carry their own monotonic `seq` (increment-by-1 within the channel). The REST book snapshot shares the book sequence space; the REST trades list shares the trade sequence space. Clients apply the gap-detection rule within a channel only.
+
+**Why:** The first draft implied one shared per-instrument sequence, which breaks gap detection: a book-channel subscriber would see a "gap" every time a trade consumed a number, triggering constant false resubscribes (caught at contract review). Per-channel sequences make "increases by exactly 1" literally true for every subscriber, and sharing the space between REST snapshot and WS deltas is what lets a client stitch a REST snapshot onto a live delta stream. This mirrors how real exchange feeds version their books (e.g. depth update IDs separate from trade IDs).
+
+### D13. Stats endpoint included in the frozen contract
+
+**Decision:** `GET /api/instruments/:symbol/stats` (last price, 24h open/high/low/volume) is part of v1. The API sends no derived or rounded values (no change %, no averages) — clients compute those from exact integers.
+
+**Why:** Every trading UI header needs these numbers; leaving it out would either break the freeze later or force the frontend to derive stats from the trade tape client-side (wrong place — it would need the full 24h tape). Excluding derived values keeps the no-floats/no-rounding invariant of the whole API (see D1).

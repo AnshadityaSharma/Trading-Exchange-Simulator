@@ -1,7 +1,7 @@
 # API Contract — Trading Exchange Simulator
 
-**Status: DRAFT — frozen after author sign-off. After freeze, the backend conforms
-to this document; breaking changes require a new version, not an edit.**
+**Status: FROZEN (signed off 2026-07-06). The backend conforms to this document;
+breaking changes require a new version, not an edit.**
 
 The frontend is built against this contract alone. Everything a client needs is
 here; anything not here is a server internal.
@@ -90,6 +90,17 @@ paise paid for the open `qty` (avg cost = costBasis ÷ qty, computed client-side
 { "symbol": "ACME", "seq": 88231, "bids": [[245050, 300], [245000, 120]], "asks": [[245100, 80]] }
 ```
 Levels are `[price, qty]`, best first, aggregated per price. `depth` default 20, max 50.
+
+#### `GET /api/instruments/:symbol/stats`
+```json
+{ "symbol": "ACME", "lastPrice": 245050, "open24h": 243000, "high24h": 246000,
+  "low24h": 242500, "volume24h": 18240, "ts": "…" }
+```
+Rolling 24-hour window. `volume24h` is in quantity units. All price fields are
+`null` if there were no trades in the window (`lastPrice` falls back to the most
+recent trade ever, or `null` if the instrument has never traded). Change and
+percentage are computed client-side from `lastPrice` and `open24h` — the API
+sends no derived/rounded values.
 
 #### `GET /api/instruments/:symbol/trades?limit=50`
 ```json
@@ -183,6 +194,13 @@ enables the private `user` channel). All frames are JSON text.
 ```
 Channels: `book:<SYMBOL>`, `trades:<SYMBOL>`, `user` (auth required).
 
+**Sequence numbers are independent per channel (and per instrument).** The
+`seq` on `book:ACME` events and the `seq` on `trades:ACME` events are separate
+counters — never compare them. The gap-detection rule applies *within* one
+channel only. The REST book snapshot's `seq` belongs to the book sequence space
+(so REST snapshot + WS deltas stitch together); the REST trades list's `seq`
+belongs to the trade sequence space.
+
 ### Server → client
 
 On connect: `{ "type": "hello", "authenticated": true }`
@@ -204,17 +222,22 @@ Errors: `{ "type": "error", "code": "UNKNOWN_CHANNEL" | "UNAUTHORIZED" | "VALIDA
   "bids": [[245050, 260]], "asks": [] }
 ```
 Delta entries are **absolute replacement quantities** per price level —
-`[price, 0]` means the level is gone. Apply deltas in `seq` order; `seq` is
-per-instrument and increases by exactly 1 per book event. **If you observe a
-gap, your state is invalid: resubscribe to get a fresh snapshot.** Top 50
-levels per side are maintained; deltas outside the top 50 are not sent.
+`[price, 0]` means the level is gone. Apply deltas in `seq` order; `seq` is the
+**book sequence** for this instrument and increases by exactly 1 per
+`book_snapshot`/`book_delta` message on this channel (trades do not consume
+book sequence numbers). **If you observe a gap, your state is invalid:
+resubscribe to get a fresh snapshot.** Top 50 levels per side are maintained;
+deltas outside the top 50 are not sent.
 
 #### Channel `trades:<SYMBOL>` — the tape
 
 ```json
 { "type": "trade", "symbol": "ACME", "price": 245050, "qty": 10,
-  "takerSide": "buy", "seq": 88233, "ts": "…" }
+  "takerSide": "buy", "seq": 5121, "ts": "…" }
 ```
+`seq` here is the **trade sequence** for this instrument (independent of the
+book sequence), increasing by exactly 1 per trade — usable for tape gap
+detection and deduplication against the REST trades endpoint.
 
 #### Channel `user` — your orders and fills (private)
 
