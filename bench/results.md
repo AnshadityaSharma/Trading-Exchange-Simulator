@@ -92,6 +92,34 @@ i.e. the difference is inside run-to-run noise), and submit p99 moved from
 bottleneck; the solid evidence for the data-structure choice (decisions.md D2,
 D11) is the flat p99, not a precise throughput delta.
 
+## Results — full HTTP path
+
+`npm run bench:http` ([http-bench.ts](http-bench.ts)) — real `POST /api/orders`
+requests over localhost keep-alive connections against the fully booted
+backend (express + JWT auth + zod validation + reservations + matching +
+WebSocket fan-out + write-behind persistence). 20 concurrent client loops,
+30,000 orders, 2,000-request warmup. Measured 2026-07-06:
+
+| metric | value |
+|---|---|
+| throughput | **1,354 orders/sec** sustained (22.2s run) |
+| latency p50 / p95 / p99 / max | 13.77ms / 22.04ms / 27.41ms / 48.22ms |
+| responses | 25,385 accepted, 4,615 business rejections (INSUFFICIENT_FUNDS as bench buyers' cash migrates into resting orders), 0 errors |
+
+**How to read the latency numbers:** they are dominated by queueing, not
+service time. With 20 requests permanently in flight against a single-threaded
+server, Little's law (latency ≈ in-flight ÷ throughput = 20 ÷ 1,354) predicts
+14.8ms — almost exactly the observed p50. The same holds for a no-op control:
+`GET /api/health` under identical concurrency measured 3,912 req/sec at p50
+4.68ms (predicted 5.1ms). Per-request **server-side** cost is therefore
+~0.26ms for the bare HTTP/express layer and ~0.74ms for a full order — the
+matching engine (0.5µs, see above) is ~0.07% of the request cost. The
+bottleneck is the HTTP/JSON/auth layer plus one core doing everything, which
+is the architecture working as designed (single-threaded exchange,
+CLAUDE.md §3); per §5 it is reported as measured, not tuned away at the
+expense of clarity. Throughput would scale with instances-per-instrument
+sharding or a faster HTTP framework — both out of scope for v1.
+
 ## Observations and honest caveats
 
 - **Throughput does not degrade as the book grows.** The engine's true resting
