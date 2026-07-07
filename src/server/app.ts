@@ -1,7 +1,9 @@
-// app.ts — express app assembly: JSON parsing, routes, contract-shaped errors.
+// app.ts — express app assembly: JSON parsing, routes, static frontend,
+// contract-shaped errors.
 // Why separate from index.ts: tests build the app (plus server + ws) against
 // a test database without touching process.env or real ports.
 
+import { join } from 'node:path';
 import express from 'express';
 import type pg from 'pg';
 import type { Explainer } from '../ai/explainer.js';
@@ -17,6 +19,11 @@ export function buildApp(exchange: Exchange, pool: pg.Pool, wb: WriteBehind, con
   app.use(express.json({ limit: '10kb' }));
 
   app.use('/api', buildRoutes(exchange, pool, wb, config, explainer));
+
+  // The frontend (web/): a static single-page terminal served from the same
+  // origin, so its relative /api and /ws URLs need no configuration. Resolved
+  // from the project root like schema.sql (db.ts) — works compiled and in dev.
+  app.use(express.static(join(process.cwd(), 'web')));
 
   app.use((_req, res) => {
     res.status(404).json({ error: { code: 'NOT_FOUND', message: 'no such endpoint' } });

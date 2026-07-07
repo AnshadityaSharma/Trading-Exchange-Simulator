@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <style>
+    html, body { margin: 0; padding: 0; background: #0b0e13; }
+    * { box-sizing: border-box; }
+    input:focus { outline: none; border-color: #3a4566 !important; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #232b38; border-radius: 4px; }
+    @keyframes bbPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+  </style>
+</helmet>
+<div style="font-family: 'IBM Plex Sans', sans-serif; color: #cfd6e4; background: #0b0e13; min-height: 100vh; font-size: 12px;">
+
+  <sc-if value="{{ isAuth }}" hint-placeholder-val="{{ true }}">
+    <div data-screen-label="Auth" style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #0b0e13;">
+      <div style="width: 340px;">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 22px;">
+          <div style="width: 36px; height: 36px; background: #e8b451; color: #0b0e13; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 15px; border-radius: 4px;">BB</div>
+          <div>
+            <div style="font-weight: 600; font-size: 14px; letter-spacing: 0.08em;">BB EXCHANGE</div>
+            <div style="font-size: 10px; color: #66707f; letter-spacing: 0.06em;">PAPER TRADING · SIMULATED MARKET · VIRTUAL MONEY</div>
+          </div>
+        </div>
+        <form onSubmit="{{ submitAuth }}" style="background: #10141b; border: 1px solid #1d2430; border-radius: 6px; padding: 20px;">
+          <div style="font-size: 15px; font-weight: 600; margin-bottom: 14px;">{{ authTitle }}</div>
+          <label style="display: block; font-size: 10px; color: #66707f; letter-spacing: 0.08em; margin-bottom: 4px;">EMAIL</label>
+          <input type="email" value="{{ email }}" onChange="{{ onEmail }}" autoComplete="email" style="width: 100%; background: #0b0e13; border: 1px solid #232b38; border-radius: 4px; color: #cfd6e4; padding: 8px 10px; font-size: 13px; margin-bottom: 12px; font-family: 'IBM Plex Mono', monospace;" />
+          <label style="display: block; font-size: 10px; color: #66707f; letter-spacing: 0.08em; margin-bottom: 4px;">PASSWORD <span style="color: #3d4655;">(MIN 8 CHARS)</span></label>
+          <input type="password" value="{{ password }}" onChange="{{ onPassword }}" autoComplete="current-password" style="width: 100%; background: #0b0e13; border: 1px solid #232b38; border-radius: 4px; color: #cfd6e4; padding: 8px 10px; font-size: 13px; margin-bottom: 12px; font-family: 'IBM Plex Mono', monospace;" />
+          <sc-if value="{{ hasAuthError }}" hint-placeholder-val="{{ false }}">
+            <div style="background: rgba(246,70,93,0.08); border: 1px solid rgba(246,70,93,0.35); border-radius: 4px; padding: 8px 10px; margin-bottom: 12px;">
+              <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #f6465d; letter-spacing: 0.06em; margin-bottom: 2px;">{{ authErrorCode }}</div>
+              <div style="font-size: 11px; color: #e4a3ad;">{{ authErrorMsg }}</div>
+            </div>
+          </sc-if>
+          <button type="submit" disabled="{{ authBusy }}" style="width: 100%; background: #e8b451; color: #0b0e13; border: none; border-radius: 4px; padding: 9px 0; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'IBM Plex Sans', sans-serif;" style-hover="background: #f2c26a;">{{ authBtnLabel }}</button>
+          <div style="margin-top: 12px; font-size: 11px; color: #66707f; text-align: center;">{{ authSwitchPrompt }} <a onClick="{{ toggleAuthMode }}" style="color: #e8b451; cursor: pointer;">{{ authSwitchAction }}</a></div>
+        </form>
+        <div style="margin-top: 14px; font-size: 10px; color: #3d4655; text-align: center;">New accounts start with ₹10,00,000 in virtual cash. No real money, no real orders.</div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isApp }}" hint-placeholder-val="{{ false }}">
+    <div style="height: 44px; display: flex; align-items: center; gap: 12px; padding: 0 12px; background: #10141b; border-bottom: 1px solid #1d2430;">
+      <div style="width: 26px; height: 26px; background: #e8b451; color: #0b0e13; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 12px; border-radius: 3px;">BB</div>
+      <div style="font-weight: 600; font-size: 12px; letter-spacing: 0.1em;">BB EXCHANGE</div>
+      <div style="border: 1px solid rgba(232,180,81,0.45); color: #e8b451; font-size: 9px; letter-spacing: 0.07em; padding: 3px 8px; border-radius: 3px; white-space: nowrap;">PAPER TRADING — SIMULATED MARKET, VIRTUAL MONEY</div>
+      <div style="flex: 1;"></div>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <div style="width: 7px; height: 7px; border-radius: 50%; background: {{ connColor }}; animation: {{ connAnim }};"></div>
+        <div style="font-size: 10px; color: #66707f; letter-spacing: 0.05em; font-family: 'IBM Plex Mono', monospace;">{{ connLabel }}</div>
+      </div>
+      <div style="display: flex; gap: 2px; background: #0b0e13; border: 1px solid #1d2430; border-radius: 4px; padding: 2px;">
+        <button onClick="{{ gotoTerminal }}" style="background: {{ termNavBg }}; color: {{ termNavColor }}; border: none; border-radius: 3px; padding: 4px 12px; font-size: 11px; cursor: pointer; font-family: 'IBM Plex Sans', sans-serif;">Terminal</button>
+        <button onClick="{{ gotoPortfolio }}" style="background: {{ pfNavBg }}; color: {{ pfNavColor }}; border: none; border-radius: 3px; padding: 4px 12px; font-size: 11px; cursor: pointer; font-family: 'IBM Plex Sans', sans-serif;">Portfolio</button>
+      </div>
+      <div style="font-size: 10px; color: #66707f; font-family: 'IBM Plex Mono', monospace;">{{ userEmail }}</div>
+      <button onClick="{{ logout }}" style="background: transparent; color: #66707f; border: 1px solid #232b38; border-radius: 4px; padding: 4px 10px; font-size: 10px; cursor: pointer; font-family: 'IBM Plex Sans', sans-serif;" style-hover="color: #cfd6e4; border-color: #3a4566;">Log out</button>
+    </div>
+
+    <sc-if value="{{ isTerminal }}" hint-placeholder-val="{{ true }}">
+      <div data-screen-label="Terminal" style="display: grid; grid-template-columns: 205px 330px minmax(360px, 1fr) 300px; gap: 1px; background: #1d2430; height: calc(100vh - 70px); min-height: 480px;">
+
+        <div style="background: #0e1218; display: flex; flex-direction: column; overflow: hidden;">
+          <div style="padding: 8px 10px; font-size: 10px; letter-spacing: 0.1em; color: #66707f; border-bottom: 1px solid #151b26;">WATCHLIST</div>
+          <div style="flex: 1; overflow-y: auto;">
+            <sc-for list="{{ watchRows }}" as="w" hint-placeholder-count="4">
+              <div onClick="{{ w.select }}" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; cursor: pointer; background: {{ w.bg }}; border-bottom: 1px solid #12161f; border-left: 2px solid {{ w.edge }};" style-hover="background: #151b26;">
+                <div>
+                  <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.03em;">{{ w.symbol }}</div>
+                  <div style="font-size: 9px; color: #66707f; margin-top: 1px;">{{ w.name }}</div>
+                </div>
+                <div style="text-align: right; font-family: 'IBM Plex Mono', monospace;">
+                  <div style="font-size: 12px; color: {{ w.chgColor }};">{{ w.lastF }}</div>
+                  <div style="font-size: 10px; color: {{ w.chgColor }}; margin-top: 1px;">{{ w.chgF }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="border-top: 1px solid #1d2430; padding: 10px; display: flex; flex-direction: column; gap: 6px;">
+            <div style="font-size: 10px; letter-spacing: 0.1em; color: #66707f;">ACCOUNT</div>
+            <div style="display: flex; justify-content: space-between;"><span style="color: #66707f; font-size: 11px;">Cash</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px;">{{ cashF }}</span></div>
+            <div style="display: flex; justify-content: space-between;"><span style="color: #66707f; font-size: 11px;">Reserved</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #9aa4b5;">{{ reservedF }}</span></div>
+            <div style="display: flex; justify-content: space-between;"><span style="color: #66707f; font-size: 11px;">Realized P&amp;L</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: {{ rpnlColor }};">{{ rpnlF }}</span></div>
+          </div>
+        </div>
+
+        <div style="background: #0e1218; display: flex; flex-direction: column; overflow: hidden;">
+          <div style="padding: 8px 10px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #151b26;">
+            <span style="font-size: 10px; letter-spacing: 0.1em; color: #66707f;">ORDER BOOK · {{ sym }}</span>
+            <sc-if value="{{ bookSyncing }}" hint-placeholder-val="{{ false }}">
+              <span style="font-size: 9px; letter-spacing: 0.08em; color: #e8b451; border: 1px solid rgba(232,180,81,0.4); border-radius: 3px; padding: 1px 6px; animation: bbPulse 1s infinite;">RESYNC</span>
+            </sc-if>
+            <span style="flex: 1;"></span>
+            <span style="font-size: 9px; color: #3d4655; font-family: 'IBM Plex Mono', monospace;">seq {{ bookSeqF }}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 4px 12px; font-size: 9px; letter-spacing: 0.08em; color: #3d4655;">
+            <span>PRICE (₹)</span><span>QTY</span>
+          </div>
+          <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden;">
+            <sc-for list="{{ askRows }}" as="r" hint-placeholder-count="8">
+              <div style="display: flex; justify-content: space-between; padding: 1px 12px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; line-height: 17px; background: linear-gradient(to left, rgba(246,70,93,0.10) {{ r.w }}%, transparent {{ r.w }}%);">
+                <span style="color: #f6465d; font-weight: {{ r.fw }};">{{ r.p }}</span>
+                <span style="color: #8a94a6;">{{ r.q }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display: flex; justify-content: center; gap: 8px; padding: 4px 12px; border-top: 1px solid #1a212c; border-bottom: 1px solid #1a212c; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #66707f;">
+            <span>spread</span><span style="color: #cfd6e4;">{{ spreadF }}</span><span>{{ spreadPctF }}</span>
+          </div>
+          <div style="flex: 1; overflow: hidden;">
+            <sc-for list="{{ bidRows }}" as="r" hint-placeholder-count="8">
+              <div style="display: flex; justify-content: space-between; padding: 1px 12px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; line-height: 17px; background: linear-gradient(to left, rgba(46,189,133,0.10) {{ r.w }}%, transparent {{ r.w }}%);">
+                <span style="color: #2ebd85; font-weight: {{ r.fw }};">{{ r.p }}</span>
+                <span style="color: #8a94a6;">{{ r.q }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="background: #0e1218; display: flex; flex-direction: column; overflow: hidden;">
+          <div style="display: flex; gap: 20px; align-items: baseline; padding: 10px 14px 8px; border-bottom: 1px solid #151b26; flex-wrap: wrap;">
+            <div>
+              <div style="font-family: 'IBM Plex Mono', monospace; font-size: 20px; font-weight: 600; color: {{ lastColor }};">{{ lastF }}</div>
+              <div style="font-size: 9px; color: #66707f; letter-spacing: 0.05em;">{{ symName }}</div>
+            </div>
+            <div><div style="font-size: 9px; color: #3d4655; letter-spacing: 0.08em;">24H CHANGE</div><div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: {{ lastColor }};">{{ chgLine }}</div></div>
+            <div><div style="font-size: 9px; color: #3d4655; letter-spacing: 0.08em;">HIGH</div><div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px;">{{ highF }}</div></div>
+            <div><div style="font-size: 9px; color: #3d4655; letter-spacing: 0.08em;">LOW</div><div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px;">{{ lowF }}</div></div>
+            <div><div style="font-size: 9px; color: #3d4655; letter-spacing: 0.08em;">VOLUME</div><div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px;">{{ volF }}</div></div>
+          </div>
+          <canvas ref="{{ sparkRef }}" style="width: 100%; height: 72px; display: block; border-bottom: 1px solid #151b26;"></canvas>
+          <div style="display: flex; border-bottom: 1px solid #1d2430;">
+            <button onClick="{{ setTabOrders }}" style="background: transparent; border: none; border-bottom: 2px solid {{ tabOrdersEdge }}; color: {{ tabOrdersColor }}; padding: 8px 14px; font-size: 11px; cursor: pointer; font-family: 'IBM Plex Sans', sans-serif;">Open orders</button>
+            <button onClick="{{ setTabPositions }}" style="background: transparent; border: none; border-bottom: 2px solid {{ tabPositionsEdge }}; color: {{ tabPositionsColor }}; padding: 8px 14px; font-size: 11px; cursor: pointer; font-family: 'IBM Plex Sans', sans-serif;">Positions</button>
+            <button onClick="{{ setTabFills }}" style="background: transparent; border: none; border-bottom: 2px solid {{ tabFillsEdge }}; color: {{ tabFillsColor }}; padding: 8px 14px; font-size: 11px; cursor: pointer; font-family: 'IBM Plex Sans', sans-serif;">My fills</button>
+          </div>
+          <div style="flex: 1; overflow-y: auto;">
+
+            <sc-if value="{{ showOrders }}" hint-placeholder-val="{{ true }}">
+              <div style="display: grid; grid-template-columns: 66px 62px 44px 54px 90px 60px 70px 1fr 60px; padding: 5px 12px; font-size: 9px; letter-spacing: 0.08em; color: #3d4655; border-bottom: 1px solid #12161f;">
+                <span>TIME</span><span>SYM</span><span>SIDE</span><span>TYPE</span><span style="text-align: right;">PRICE</span><span style="text-align: right;">QTY</span><span style="text-align: right;">FILLED</span><span style="padding-left: 14px;">STATUS</span><span></span>
+              </div>
+              <sc-for list="{{ openOrderRows }}" as="r" hint-placeholder-count="2">
+                <div style="display: grid; grid-template-columns: 66px 62px 44px 54px 90px 60px 70px 1fr 60px; align-items: center; padding: 4px 12px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; border-bottom: 1px solid #12161f; opacity: {{ r.opacity }};">
+                  <span style="color: #66707f;">{{ r.tm }}</span>
+                  <span>{{ r.sym }}</span>
+                  <span style="color: {{ r.sideColor }};">{{ r.side }}</span>
+                  <span style="color: #8a94a6;">{{ r.type }}</span>
+                  <span style="text-align: right;">{{ r.priceF }}</span>
+                  <span style="text-align: right; color: #8a94a6;">{{ r.qtyF }}</span>
+                  <span style="text-align: right; color: #8a94a6;">{{ r.filledF }}</span>
+                  <span style="padding-left: 14px; color: {{ r.statusColor }}; display: flex; align-items: center; gap: 6px;">{{ r.statusL }}<span style="font-size: 9px; letter-spacing: 0.05em; color: #e8b451; border: 1px solid rgba(232,180,81,0.4); border-radius: 3px; padding: 0 5px; display: {{ r.badgeDisplay }};">{{ r.badge }}</span></span>
+                  <button onClick="{{ r.cancel }}" style="display: {{ r.cancelDisplay }}; background: transparent; border: 1px solid #232b38; color: #8a94a6; border-radius: 3px; padding: 2px 8px; font-size: 10px; cursor: pointer; justify-self: end; font-family: 'IBM Plex Sans', sans-serif;" style-hover="border-color: #f6465d; color: #f6465d;">Cancel</button>
+                </div>
+              </sc-for>
+              <sc-if value="{{ noOpenOrders }}" hint-placeholder-val="{{ false }}">
+                <div style="padding: 18px 12px; color: #3d4655; font-size: 11px;">No open orders. Place a limit order away from the touch to see it rest here.</div>
+              </sc-if>
+            </sc-if>
+
+            <sc-if value="{{ showPositions }}" hint-placeholder-val="{{ false }}">
+              <div style="display: grid; grid-template-columns: 70px 80px 90px 120px 130px 1fr; padding: 5px 12px; font-size: 9px; letter-spacing: 0.08em; color: #3d4655; border-bottom: 1px solid #12161f;">
+                <span>SYM</span><span style="text-align: right;">QTY</span><span style="text-align: right;">RESERVED</span><span style="text-align: right;">AVG COST</span><span style="text-align: right;">COST BASIS</span><span style="text-align: right;">REALIZED P&amp;L</span>
+              </div>
+              <sc-for list="{{ positionRows }}" as="r" hint-placeholder-count="2">
+                <div style="display: grid; grid-template-columns: 70px 80px 90px 120px 130px 1fr; padding: 5px 12px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; border-bottom: 1px solid #12161f;">
+                  <span style="font-weight: 600;">{{ r.sym }}</span>
+                  <span style="text-align: right;">{{ r.qty }}</span>
+                  <span style="text-align: right; color: #8a94a6;">{{ r.reserved }}</span>
+                  <span style="text-align: right;">{{ r.avgF }}</span>
+                  <span style="text-align: right; color: #8a94a6;">{{ r.costF }}</span>
+                  <span style="text-align: right; color: {{ r.pnlColor }};">{{ r.pnlF }}</span>
+                </div>
+              </sc-for>
+              <sc-if value="{{ noPositions }}" hint-placeholder-val="{{ false }}">
+                <div style="padding: 18px 12px; color: #3d4655; font-size: 11px;">No positions yet. Buy something — it's virtual money.</div>
+              </sc-if>
+            </sc-if>
+
+            <sc-if value="{{ showFills }}" hint-placeholder-val="{{ false }}">
+              <div style="display: grid; grid-template-columns: 66px 70px 44px 100px 64px 64px 1fr; padding: 5px 12px; font-size: 9px; letter-spacing: 0.08em; color: #3d4655; border-bottom: 1px solid #12161f;">
+                <span>TIME</span><span>SYM</span><span>SIDE</span><span style="text-align: right;">PRICE</span><span style="text-align: right;">QTY</span><span style="padding-left: 14px;">ROLE</span><span></span>
+              </div>
+              <sc-for list="{{ fillRows }}" as="r" hint-placeholder-count="3">
+                <div style="display: grid; grid-template-columns: 66px 70px 44px 100px 64px 64px 1fr; align-items: center; padding: 4px 12px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; border-bottom: 1px solid #12161f;">
+                  <span style="color: #66707f;">{{ r.tm }}</span>
+                  <span>{{ r.sym }}</span>
+                  <span style="color: {{ r.sideColor }};">{{ r.side }}</span>
+                  <span style="text-align: right;">{{ r.priceF }}</span>
+                  <span style="text-align: right; color: #8a94a6;">{{ r.qty }}</span>
+                  <span style="padding-left: 14px; color: #66707f;">{{ r.role }}</span>
+                  <button onClick="{{ r.explain }}" style="background: transparent; border: 1px solid #232b38; color: #8a94a6; border-radius: 3px; padding: 2px 8px; font-size: 10px; cursor: pointer; justify-self: end; font-family: 'IBM Plex Sans', sans-serif;" style-hover="border-color: #e8b451; color: #e8b451;">Explain</button>
+                </div>
+              </sc-for>
+              <sc-if value="{{ noFills }}" hint-placeholder-val="{{ false }}">
+                <div style="padding: 18px 12px; color: #3d4655; font-size: 11px;">No fills yet. A market order fills instantly against the book.</div>
+              </sc-if>
+            </sc-if>
+
+          </div>
+        </div>
+
+        <div style="background: #0e1218; display: flex; flex-direction: column; overflow: hidden;">
+          <div style="padding: 12px; border-bottom: 1px solid #1d2430;">
+            <div style="display: flex; gap: 1px; margin-bottom: 10px; border-radius: 4px; overflow: hidden;">
+              <button onClick="{{ setBuy }}" style="flex: 1; background: {{ buyBg }}; color: {{ buyColor }}; border: none; padding: 8px 0; font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'IBM Plex Sans', sans-serif;">BUY</button>
+              <button onClick="{{ setSell }}" style="flex: 1; background: {{ sellBg }}; color: {{ sellColor }}; border: none; padding: 8px 0; font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'IBM Plex Sans', sans-serif;">SELL</button>
+            </div>
+            <div style="display: flex; gap: 14px; margin-bottom: 10px;">
+              <button onClick="{{ setLimit }}" style="background: transparent; border: none; padding: 0; color: {{ limitColor }}; font-size: 11px; font-weight: {{ limitFw }}; cursor: pointer; font-family: 'IBM Plex Sans', sans-serif;">Limit</button>
+              <button onClick="{{ setMarket }}" style="background: transparent; border: none; padding: 0; color: {{ marketColor }}; font-size: 11px; font-weight: {{ marketFw }}; cursor: pointer; font-family: 'IBM Plex Sans', sans-serif;">Market</button>
+            </div>
+            <sc-if value="{{ isLimit }}" hint-placeholder-val="{{ true }}">
+              <label style="display: block; font-size: 9px; color: #66707f; letter-spacing: 0.08em; margin-bottom: 3px;">PRICE (₹) · TICK {{ tickF }}</label>
+              <input value="{{ priceStr }}" onChange="{{ onPrice }}" onBlur="{{ onPriceBlur }}" inputMode="decimal" placeholder="{{ pricePlaceholder }}" style="width: 100%; background: #0b0e13; border: 1px solid #232b38; border-radius: 4px; color: #cfd6e4; padding: 7px 10px; font-size: 13px; margin-bottom: 8px; font-family: 'IBM Plex Mono', monospace;" />
+            </sc-if>
+            <sc-if value="{{ isMarket }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size: 10px; color: #66707f; background: #0b0e13; border: 1px dashed #232b38; border-radius: 4px; padding: 8px 10px; margin-bottom: 8px; font-family: 'IBM Plex Mono', monospace;">{{ marketRefLine }}</div>
+            </sc-if>
+            <label style="display: block; font-size: 9px; color: #66707f; letter-spacing: 0.08em; margin-bottom: 3px;">QUANTITY</label>
+            <input value="{{ qtyStr }}" onChange="{{ onQty }}" inputMode="numeric" placeholder="0" style="width: 100%; background: #0b0e13; border: 1px solid #232b38; border-radius: 4px; color: #cfd6e4; padding: 7px 10px; font-size: 13px; margin-bottom: 8px; font-family: 'IBM Plex Mono', monospace;" />
+            <sc-if value="{{ hasTickHint }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size: 10px; color: #e8b451; margin-bottom: 8px;">{{ tickHint }}</div>
+            </sc-if>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;"><span style="font-size: 10px; color: #66707f;">{{ estLabel }}</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px;">{{ estF }}</span></div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;"><span style="font-size: 10px; color: #66707f;">{{ availLabel }}</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #8a94a6;">{{ availF }}</span></div>
+            <button onClick="{{ submitOrder }}" disabled="{{ submitDisabled }}" style="width: 100%; background: {{ submitBg }}; color: {{ submitColor }}; border: none; border-radius: 4px; padding: 9px 0; font-size: 12px; font-weight: 600; cursor: {{ submitCursor }}; font-family: 'IBM Plex Sans', sans-serif;">{{ submitLabel }}</button>
+            <sc-if value="{{ hasReason }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size: 10px; color: #e8b451; margin-top: 6px;">{{ submitReason }}</div>
+            </sc-if>
+            <sc-if value="{{ hasOrderMsg }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size: 11px; color: {{ orderMsgColor }}; margin-top: 8px; font-family: 'IBM Plex Mono', monospace; line-height: 1.45;">{{ orderMsgText }}</div>
+            </sc-if>
+          </div>
+          <div style="padding: 8px 10px 4px; display: flex; justify-content: space-between; align-items: baseline;">
+            <span style="font-size: 10px; letter-spacing: 0.1em; color: #66707f;">TRADES · {{ sym }}</span>
+            <span style="font-size: 9px; color: #3d4655; font-family: 'IBM Plex Mono', monospace;">seq {{ tradeSeqF }}</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 70px 70px; padding: 2px 12px 4px; font-size: 9px; letter-spacing: 0.08em; color: #3d4655;">
+            <span>PRICE (₹)</span><span style="text-align: right;">QTY</span><span style="text-align: right;">TIME</span>
+          </div>
+          <div style="flex: 1; overflow-y: auto;">
+            <sc-for list="{{ tapeRows }}" as="t" hint-placeholder-count="10">
+              <div style="display: grid; grid-template-columns: 1fr 70px 70px; padding: 1px 12px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; line-height: 16px;">
+                <span style="color: {{ t.color }};">{{ t.p }}</span>
+                <span style="text-align: right; color: #8a94a6;">{{ t.q }}</span>
+                <span style="text-align: right; color: #4c5666;">{{ t.tm }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isPortfolio }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Portfolio" style="height: calc(100vh - 70px); overflow-y: auto; padding: 14px; display: grid; grid-template-columns: minmax(420px, 3fr) minmax(360px, 2fr); gap: 14px; align-content: start;">
+        <div style="background: #0e1218; border: 1px solid #1d2430; border-radius: 6px; overflow: hidden;">
+          <div style="padding: 10px 12px; font-size: 10px; letter-spacing: 0.1em; color: #66707f; border-bottom: 1px solid #1d2430;">ORDER HISTORY</div>
+          <div style="display: grid; grid-template-columns: 76px 62px 44px 54px 86px 52px 62px 90px 1fr; padding: 5px 12px; font-size: 9px; letter-spacing: 0.08em; color: #3d4655; border-bottom: 1px solid #12161f;">
+            <span>TIME</span><span>SYM</span><span>SIDE</span><span>TYPE</span><span style="text-align: right;">PRICE</span><span style="text-align: right;">QTY</span><span style="text-align: right;">FILLED</span><span style="text-align: right;">AVG FILL</span><span style="text-align: right;">STATUS</span>
+          </div>
+          <sc-for list="{{ pfOrderRows }}" as="r" hint-placeholder-count="6">
+            <div style="display: grid; grid-template-columns: 76px 62px 44px 54px 86px 52px 62px 90px 1fr; padding: 4px 12px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; border-bottom: 1px solid #12161f;">
+              <span style="color: #66707f;">{{ r.tm }}</span>
+              <span>{{ r.sym }}</span>
+              <span style="color: {{ r.sideColor }};">{{ r.side }}</span>
+              <span style="color: #8a94a6;">{{ r.type }}</span>
+              <span style="text-align: right;">{{ r.priceF }}</span>
+              <span style="text-align: right; color: #8a94a6;">{{ r.qty }}</span>
+              <span style="text-align: right; color: #8a94a6;">{{ r.filledF }}</span>
+              <span style="text-align: right;">{{ r.avgF }}</span>
+              <span style="text-align: right; color: {{ r.statusColor }};">{{ r.statusL }}</span>
+            </div>
+          </sc-for>
+          <div style="padding: 10px 12px;">
+            <button onClick="{{ loadMoreOrders }}" disabled="{{ pfOrdersBtnDisabled }}" style="background: transparent; border: 1px solid #232b38; color: {{ pfOrdersBtnColor }}; border-radius: 4px; padding: 5px 14px; font-size: 11px; cursor: pointer; font-family: 'IBM Plex Sans', sans-serif;" style-hover="border-color: #3a4566;">{{ pfOrdersBtnLabel }}</button>
+          </div>
+        </div>
+        <div style="background: #0e1218; border: 1px solid #1d2430; border-radius: 6px; overflow: hidden;">
+          <div style="padding: 10px 12px; font-size: 10px; letter-spacing: 0.1em; color: #66707f; border-bottom: 1px solid #1d2430;">FILL HISTORY</div>
+          <div style="display: grid; grid-template-columns: 76px 66px 44px 90px 56px 60px 1fr; padding: 5px 12px; font-size: 9px; letter-spacing: 0.08em; color: #3d4655; border-bottom: 1px solid #12161f;">
+            <span>TIME</span><span>SYM</span><span>SIDE</span><span style="text-align: right;">PRICE</span><span style="text-align: right;">QTY</span><span style="padding-left: 12px;">ROLE</span><span style="text-align: right;">ORDER</span>
+          </div>
+          <sc-for list="{{ pfFillRows }}" as="r" hint-placeholder-count="6">
+            <div style="display: grid; grid-template-columns: 76px 66px 44px 90px 56px 60px 1fr; padding: 4px 12px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; border-bottom: 1px solid #12161f;">
+              <span style="color: #66707f;">{{ r.tm }}</span>
+              <span>{{ r.sym }}</span>
+              <span style="color: {{ r.sideColor }};">{{ r.side }}</span>
+              <span style="text-align: right;">{{ r.priceF }}</span>
+              <span style="text-align: right; color: #8a94a6;">{{ r.qty }}</span>
+              <span style="padding-left: 12px; color: #66707f;">{{ r.role }}</span>
+              <span style="text-align: right; color: #4c5666; overflow: hidden; text-overflow: ellipsis;">{{ r.orderId }}</span>
+            </div>
+          </sc-for>
+          <div style="padding: 10px 12px;">
+            <button onClick="{{ loadMoreFills }}" disabled="{{ pfFillsBtnDisabled }}" style="background: transparent; border: 1px solid #232b38; color: {{ pfFillsBtnColor }}; border-radius: 4px; padding: 5px 14px; font-size: 11px; cursor: pointer; font-family: 'IBM Plex Sans', sans-serif;" style-hover="border-color: #3a4566;">{{ pfFillsBtnLabel }}</button>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <div style="height: 26px; display: flex; align-items: center; gap: 14px; padding: 0 12px; background: #10141b; border-top: 1px solid #1d2430; font-size: 10px; color: #3d4655;">
+      <span>Paper trading — simulated market, virtual money</span>
+      <span style="flex: 1; color: #8a7440; font-family: 'IBM Plex Mono', monospace; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">{{ lastEvent }}</span>
+      <span style="font-family: 'IBM Plex Mono', monospace;">WS {{ connLabel }} · contract v1 (frozen)</span>
+    </div>
+
+    <sc-if value="{{ explainOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="position: fixed; right: 14px; bottom: 36px; width: 350px; background: #12161f; border: 1px solid #2a3444; border-radius: 6px; box-shadow: 0 14px 36px rgba(0,0,0,0.55); z-index: 50;">
+        <div style="display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-bottom: 1px solid #1d2430;">
+          <span style="font-size: 10px; letter-spacing: 0.1em; color: #e8b451;">AI EXPLAIN</span>
+          <span style="font-size: 10px; color: #4c5666; font-family: 'IBM Plex Mono', monospace;">{{ explainOrderId }}</span>
+          <span style="flex: 1;"></span>
+          <button onClick="{{ closeExplain }}" style="background: transparent; border: none; color: #66707f; font-size: 14px; cursor: pointer; padding: 0 2px; line-height: 1;" style-hover="color: #cfd6e4;">×</button>
+        </div>
+        <div style="padding: 12px;">
+          <sc-if value="{{ explainLoading }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size: 11px; color: #8a94a6; animation: bbPulse 1.2s infinite;">Generating explanation… this may take a few seconds.</div>
+          </sc-if>
+          <sc-if value="{{ hasExplainError }}" hint-placeholder-val="{{ false }}">
+            <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #f6465d; margin-bottom: 4px;">{{ explainErrorCode }}</div>
+            <div style="font-size: 11px; color: #e4a3ad; line-height: 1.5;">{{ explainErrorMsg }}</div>
+            <div style="font-size: 10px; color: #66707f; margin-top: 6px;">The order itself is unaffected — its data is still in your history.</div>
+          </sc-if>
+          <sc-if value="{{ hasExplainText }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size: 12px; line-height: 1.55; color: #cfd6e4;">{{ explainText }}</div>
+          </sc-if>
+        </div>
+      </div>
+    </sc-if>
+
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.view = 'auth';
+    this.authMode = 'signup'; this.email = ''; this.password = '';
+    this.authError = null; this.authBusy = false;
+    this.token = null; this.user = null; this.me = null;
+    this.instruments = []; this.stats = {};
+    this.sym = 'ACME';
+    this.bidMap = new Map(); this.askMap = new Map(); this.bookSeq = 0; this.bookSyncing = true;
+    this.tape = []; this.tradeSeq = 0; this.spark = [];
+    this.openOrders = []; this.ghosts = []; this.cancelRequested = new Set();
+    this.myFills = []; this.fillIds = new Set();
+    this.side = 'buy'; this.otype = 'limit'; this.priceStr = ''; this.qtyStr = '';
+    this.placing = false; this.orderMsg = null;
+    this.tab = 'orders';
+    this.explain = null;
+    this.pf = { orders: [], fills: [], ordersNext: undefined, fillsNext: undefined, loadingO: false, loadingF: false };
+    this.conn = 'offline'; this.lastEvent = '';
+    this.sparkRefFn = (el) => { this._spark = el; this.drawSpark(); };
+  }
+
+  async componentDidMount() {
+    const t = localStorage.getItem('bb_token');
+    if (t) {
+      this.token = t;
+      try {
+        const me = await this.api('/api/me');
+        this.user = me.user; this.me = me;
+        await this.enterTerminal();
+      } catch (e) {
+        this.token = null; localStorage.removeItem('bb_token');
+        this.view = 'auth';
+        if (e.code !== 'UNAUTHORIZED') this.authError = { code: e.code || 'BOOT', message: e.message };
+      }
+    }
+    this.paint();
+  }
+  componentDidUpdate() { this.drawSpark(); }
+  componentWillUnmount() {
+    this._dead = true;
+    clearInterval(this._statsT); clearInterval(this._pingT); clearTimeout(this._meT);
+    if (this._ws) { const w = this._ws; this._ws = null; try { w.close(); } catch (e) {} }
+  }
+  paint() {
+    if (this._raf || this._dead) return;
+    this._raf = requestAnimationFrame(() => { this._raf = null; if (!this._dead) { this.forceUpdate(); this.drawSpark(); } });
+  }
+  event(msg) { this.lastEvent = new Date().toTimeString().slice(0, 8) + '  ' + msg; }
+
+  // ---------- data layer (real backend: same-origin REST + WS per docs/api-contract.md) ----------
+  async api(path, opts = {}) {
+    const headers = { 'Content-Type': 'application/json' };
+    if (this.token) headers['Authorization'] = 'Bearer ' + this.token;
+    const res = await fetch(path, { ...opts, headers });
+    const data = await res.json();
+    if (!res.ok) {
+      const err = new Error((data.error && data.error.message) || 'request failed');
+      err.code = (data.error && data.error.code) || 'ERROR';
+      throw err;
+    }
+    return data;
+  }
+
+  // ---------- auth ----------
+  async submitAuth(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    if (this.authBusy) return;
+    this.authBusy = true; this.authError = null; this.paint();
+    try {
+      const d = await this.api('/api/auth/' + (this.authMode === 'signup' ? 'signup' : 'login'), {
+        method: 'POST', body: JSON.stringify({ email: this.email.trim(), password: this.password }),
+      });
+      this.token = d.token; this.user = d.user;
+      localStorage.setItem('bb_token', d.token);
+      this.authBusy = false;
+      await this.enterTerminal();
+    } catch (err) {
+      this.authError = { code: err.code, message: err.message };
+      this.authBusy = false;
+    }
+    this.paint();
+  }
+  logout() {
+    if (this._ws) { const w = this._ws; this._ws = null; try { w.close(); } catch (e) {} }
+    clearInterval(this._statsT); clearInterval(this._pingT); clearTimeout(this._meT);
+    this.token = null; this.user = null; this.me = null;
+    localStorage.removeItem('bb_token');
+    this.openOrders = []; this.ghosts = []; this.myFills = []; this.fillIds = new Set();
+    this.tape = []; this.spark = []; this.bidMap = new Map(); this.askMap = new Map();
+    this.conn = 'offline'; this.view = 'auth'; this.authMode = 'login'; this.password = ''; this.authError = null;
+    this.orderMsg = null; this.explain = null; this.lastEvent = '';
+    this.pf = { orders: [], fills: [], ordersNext: undefined, fillsNext: undefined, loadingO: false, loadingF: false };
+    this.paint();
+  }
+
+  // ---------- terminal boot ----------
+  async enterTerminal() {
+    this.view = 'terminal'; this._everLive = false; this.paint();
+    const [ins, me, oo, ff] = await Promise.all([
+      this.api('/api/instruments'), this.api('/api/me'),
+      this.api('/api/orders?status=open&limit=50'), this.api('/api/fills?limit=40'),
+    ]);
+    this.instruments = ins.instruments; this.me = me;
+    this.openOrders = oo.orders;
+    this.myFills = ff.fills; ff.fills.forEach((f) => this.fillIds.add(f.id));
+    if (!this.instruments.some((i) => i.symbol === this.sym)) this.sym = this.instruments[0].symbol;
+    await this.refreshStats();
+    this.connectWS();
+    await this.loadTape();
+    clearInterval(this._statsT);
+    this._statsT = setInterval(() => this.refreshStats(), 5000);
+    this.paint();
+  }
+  async refreshStats() {
+    try {
+      const all = await Promise.all(this.instruments.map((i) => this.api('/api/instruments/' + i.symbol + '/stats')));
+      for (const s of all) this.stats[s.symbol] = s;
+      this.paint();
+    } catch (e) {}
+  }
+  async loadTape() {
+    const d = await this.api('/api/instruments/' + this.sym + '/trades?limit=60');
+    this.tape = d.trades.slice(0, 60);
+    this.tradeSeq = d.trades.length ? d.trades[0].seq : 0;
+    this.spark = d.trades.slice(0, 140).map((t) => t.price).reverse();
+    this.paint();
+  }
+
+  // ---------- websocket ----------
+  connectWS() {
+    if (this._ws) { const w = this._ws; this._ws = null; try { w.close(); } catch (e) {} }
+    this.conn = 'connecting'; this.paint();
+    const proto = location.protocol === 'https:' ? 'wss://' : 'ws://';
+    const ws = new WebSocket(proto + location.host + '/ws?token=' + encodeURIComponent(this.token));
+    this._ws = ws;
+    ws.onopen = () => {
+      const reconnected = this._everLive;
+      this._everLive = true;
+      this.conn = 'live';
+      // subscriptions never survive reconnect — resubscribe every connect
+      this.sub('user'); this.bookSyncing = true;
+      this.sub('book:' + this.sym); this.sub('trades:' + this.sym);
+      // A reconnect can hide a server restart: the backend cancels orphaned
+      // open orders at boot without user-channel events, and fills/trades may
+      // have happened while offline. Channels resnapshot themselves above;
+      // REST state (orders, account, tape, stats) must be refetched.
+      if (reconnected) this.resync();
+      this.paint();
+    };
+    ws.onmessage = (ev) => this.handleFrame(JSON.parse(ev.data));
+    ws.onclose = () => {
+      if (ws !== this._ws) return;
+      this.conn = 'reconnecting';
+      this.event('Socket dropped — reconnecting & resubscribing');
+      setTimeout(() => { if (ws === this._ws && this.token && !this._dead) this.connectWS(); }, 800);
+      this.paint();
+    };
+    clearInterval(this._pingT);
+    this._pingT = setInterval(() => { if (ws.readyState === 1) ws.send(JSON.stringify({ type: 'ping' })); }, 25000);
+  }
+  sub(ch) { if (this._ws && this._ws.readyState === 1) this._ws.send(JSON.stringify({ type: 'subscribe', channel: ch })); }
+  unsub(ch) { if (this._ws && this._ws.readyState === 1) this._ws.send(JSON.stringify({ type: 'unsubscribe', channel: ch })); }
+  async resync() {
+    this.event('Reconnected — resubscribed all channels, resyncing state');
+    try {
+      const [oo, me] = await Promise.all([
+        this.api('/api/orders?status=open&limit=50'),
+        this.api('/api/me'),
+      ]);
+      this.openOrders = oo.orders; this.me = me;
+    } catch (e) {}
+    this.loadTape(); this.refreshStats();
+    this.paint();
+  }
+
+  handleFrame(m) {
+    switch (m.type) {
+      case 'book_snapshot':
+        if (m.symbol !== this.sym) return;
+        this.bidMap = new Map(m.bids); this.askMap = new Map(m.asks);
+        this.bookSeq = m.seq; this.bookSyncing = false;
+        this.paint(); break;
+      case 'book_delta': this.applyDelta(m); break;
+      case 'trade': this.onTrade(m); break;
+      case 'order_update': this.onOrderUpdate(m.order); break;
+      case 'fill': this.onFill(m.fill); break;
+      case 'error': this.event('WS error: ' + m.code + ' — ' + m.message); this.paint(); break;
+    }
+  }
+  applyDelta(m) {
+    if (m.symbol !== this.sym || this.bookSyncing) return;
+    if (m.seq !== this.bookSeq + 1) {
+      // gap => book state is invalid; resubscribe for a fresh snapshot
+      this.bookSyncing = true;
+      this.event('Seq gap on book:' + this.sym + ' (got ' + m.seq + ', expected ' + (this.bookSeq + 1) + ') — resubscribed');
+      this.unsub('book:' + this.sym); this.sub('book:' + this.sym);
+      this.paint(); return;
+    }
+    this.bookSeq = m.seq;
+    for (const [p, q] of m.bids) { if (q === 0) this.bidMap.delete(p); else this.bidMap.set(p, q); }
+    for (const [p, q] of m.asks) { if (q === 0) this.askMap.delete(p); else this.askMap.set(p, q); }
+    this.paint();
+  }
+  onTrade(m) {
+    if (m.symbol !== this.sym) return;
+    if (this.tradeSeq && m.seq <= this.tradeSeq) return; // dedupe vs REST snapshot
+    if (this.tradeSeq && m.seq > this.tradeSeq + 1) {
+      this.event('Seq gap on trades:' + this.sym + ' — refetched tape');
+      this.tradeSeq = m.seq; this.loadTape(); return;
+    }
+    this.tradeSeq = m.seq;
+    this.tape.unshift(m); if (this.tape.length > 60) this.tape.length = 60;
+    const st = this.stats[this.sym];
+    if (st) {
+      st.lastPrice = m.price;
+      if (st.high24h == null || m.price > st.high24h) st.high24h = m.price;
+      if (st.low24h == null || m.price < st.low24h) st.low24h = m.price;
+      st.volume24h += m.qty;
+    }
+    this.spark.push(m.price); if (this.spark.length > 140) this.spark.shift();
+    this.paint();
+  }
+  onOrderUpdate(o) {
+    const i = this.openOrders.findIndex((x) => x.id === o.id);
+    if (o.status === 'open' || o.status === 'partially_filled') {
+      if (i >= 0) this.openOrders[i] = o; else this.openOrders.unshift(o);
+    } else {
+      if (i >= 0) this.openOrders.splice(i, 1);
+      if (o.status === 'canceled' && o.type === 'limit') {
+        const requested = this.cancelRequested.has(o.id);
+        const badge = requested ? '' : 'AUTO · SELF-TRADE';
+        if (!requested) this.event('Self-trade prevention: resting order ' + o.id + ' auto-canceled');
+        this.ghosts.unshift({ order: o, badge, until: Date.now() + 8000 });
+        setTimeout(() => { this.ghosts = this.ghosts.filter((g) => g.until > Date.now()); this.paint(); }, 8300);
+      }
+    }
+    this.refreshMe(); this.paint();
+  }
+  onFill(f) {
+    if (!this.fillIds.has(f.id)) {
+      this.fillIds.add(f.id);
+      this.myFills.unshift(f);
+      if (this.myFills.length > 100) this.myFills.length = 100;
+    }
+    this.refreshMe(); this.paint();
+  }
+  refreshMe() {
+    clearTimeout(this._meT);
+    this._meT = setTimeout(async () => {
+      try { this.me = await this.api('/api/me'); this.paint(); } catch (e) {}
+    }, 250);
+  }
+
+  // ---------- symbol switching ----------
+  selectSymbol(sym) {
+    if (sym === this.sym) return;
+    this.unsub('book:' + this.sym); this.unsub('trades:' + this.sym);
+    this.sym = sym;
+    this.bidMap = new Map(); this.askMap = new Map(); this.bookSeq = 0; this.bookSyncing = true;
+    this.tape = []; this.tradeSeq = 0; this.spark = [];
+    this.priceStr = ''; this.orderMsg = null;
+    this.sub('book:' + sym); this.sub('trades:' + sym);
+    this.loadTape();
+    this.paint();
+  }
+
+  // ---------- formatting (all from exact integers; display only) ----------
+  groupIN(n) {
+    const s = String(n);
+    if (s.length <= 3) return s;
+    return s.slice(0, -3).replace(/\B(?=(\d{2})+(?!\d))/g, ',') + ',' + s.slice(-3);
+  }
+  inr(paise) {
+    if (paise == null) return '—';
+    const neg = paise < 0; const v = Math.abs(paise);
+    return (neg ? '−₹' : '₹') + this.groupIN(Math.floor(v / 100)) + '.' + String(v % 100).padStart(2, '0');
+  }
+  ins(sym) { return this.instruments.find((i) => i.symbol === (sym || this.sym)) || { priceScale: 100, tickSize: 5 }; }
+  px(p, sym) {
+    if (p == null) return '—';
+    const sc = this.ins(sym).priceScale; const d = String(sc).length - 1;
+    return this.groupIN(Math.floor(p / sc)) + (d ? '.' + String(Math.abs(p) % sc).padStart(d, '0') : '');
+  }
+  pxPlain(p, sym) {
+    const sc = this.ins(sym).priceScale; const d = String(sc).length - 1;
+    return String(Math.floor(p / sc)) + (d ? '.' + String(p % sc).padStart(d, '0') : '');
+  }
+  avgPx(notional, qty, sym) { // avg = filledNotional ÷ filledQty, computed client-side
+    if (!qty) return '—';
+    return this.px(Math.round(notional / qty), sym);
+  }
+  tm(ts) { return ts ? new Date(ts).toTimeString().slice(0, 8) : ''; }
+
+  parsePrice(str, sym) {
+    const s = (str || '').trim();
+    if (!/^\d+(\.\d{1,2})?$/.test(s)) return null;
+    const sc = this.ins(sym).priceScale;
+    const [r, f = ''] = s.split('.');
+    return parseInt(r, 10) * sc + (f ? parseInt(f.padEnd(2, '0'), 10) * (sc / 100) : 0);
+  }
+  bestBid() { let b = null; for (const p of this.bidMap.keys()) if (b == null || p > b) b = p; return b; }
+  bestAsk() { let a = null; for (const p of this.askMap.keys()) if (a == null || p < a) a = p; return a; }
+  posOf(sym) { return this.me && this.me.positions.find((p) => p.instrument === sym); }
+
+  // ---------- order entry ----------
+  orderCalc() {
+    const ins = this.ins();
+    const qty = /^\d+$/.test((this.qtyStr || '').trim()) ? parseInt(this.qtyStr, 10) : null;
+    const price = this.parsePrice(this.priceStr);
+    const bb = this.bestBid(), ba = this.bestAsk();
+    let reason = null, tickHint = '';
+    if (this.otype === 'limit') {
+      if (price == null) reason = (this.priceStr || '').trim() ? 'Price must be a number with up to 2 decimals' : 'Enter a limit price';
+      else if (price % ins.tickSize !== 0) {
+        tickHint = 'Off tick — prices move in steps of ₹' + this.pxPlain(ins.tickSize) + '. It will snap on blur.';
+        reason = 'Price is off tick';
+      }
+    }
+    if (!qty || qty < 1) reason = reason || 'Enter a quantity';
+    const ref = this.otype === 'limit' ? price : (this.side === 'buy' ? ba : bb);
+    const est = qty && ref != null ? ref * qty : null;
+    if (this.otype === 'market' && this.side === 'buy' && ba == null) reason = reason || 'No asks in the book';
+    if (!reason && this.side === 'buy' && est != null && this.me && est > this.me.cash)
+      reason = 'Insufficient cash — ' + this.inr(this.me.cash) + ' available';
+    if (!reason && this.side === 'sell' && qty) {
+      const p = this.posOf(this.sym); const free = p ? p.qty - p.reservedQty : 0;
+      if (qty > free) reason = 'Insufficient position — ' + free + ' ' + this.sym + ' free (no short selling)';
+    }
+    return { qty, price, est, reason, tickHint, disabled: !!reason || this.placing || !this.me };
+  }
+  snapPrice() {
+    const ins = this.ins();
+    const p = this.parsePrice(this.priceStr);
+    if (p == null || p % ins.tickSize === 0) return;
+    const snapped = Math.max(ins.tickSize, Math.round(p / ins.tickSize) * ins.tickSize);
+    this.priceStr = this.pxPlain(snapped);
+    this.paint();
+  }
+  async submitOrder() {
+    const v = this.orderCalc();
+    if (v.disabled) return;
+    this.placing = true; this.orderMsg = null; this.paint();
+    try {
+      const body = { instrument: this.sym, side: this.side, type: this.otype, qty: v.qty };
+      if (this.otype === 'limit') body.price = v.price;
+      const d = await this.api('/api/orders', { method: 'POST', body: JSON.stringify(body) });
+      const o = d.order;
+      const avg = this.avgPx(o.filledNotional, o.filledQty, o.instrument);
+      const verb = o.side === 'buy' ? 'Bought' : 'Sold';
+      let msg, color;
+      if (o.status === 'filled') { msg = '✓ ' + verb + ' ' + o.filledQty + ' ' + o.instrument + ' @ ₹' + avg + ' avg'; color = o.side === 'buy' ? '#2ebd85' : '#f6465d'; }
+      else if (o.status === 'canceled') {
+        msg = o.filledQty > 0
+          ? verb + ' ' + o.filledQty + '/' + o.qty + ' @ ₹' + avg + ' avg — remainder canceled (market orders never rest)'
+          : 'Canceled — no liquidity reached (market orders never rest)';
+        color = '#e8b451';
+      } else if (o.status === 'partially_filled') { msg = verb + ' ' + o.filledQty + '/' + o.qty + ' @ ₹' + avg + ' avg — rest resting at ₹' + this.px(o.price); color = '#e8b451'; }
+      else { msg = 'Order resting at ₹' + this.px(o.price) + ' × ' + o.qty; color = '#8a94a6'; }
+      this.orderMsg = { text: msg, color };
+      if ((o.status === 'open' || o.status === 'partially_filled') && !this.openOrders.some((x) => x.id === o.id)) this.openOrders.unshift(o);
+      this.refreshMe();
+    } catch (err) {
+      this.orderMsg = { text: err.code + ' — ' + err.message, color: '#f6465d' };
+    }
+    this.placing = false; this.paint();
+  }
+  async cancelOrder(id) {
+    this.cancelRequested.add(id);
+    try { await this.api('/api/orders/' + id, { method: 'DELETE' }); }
+    catch (err) { this.event('Cancel failed: ' + err.code + ' — ' + err.message); this.paint(); }
+  }
+
+  // ---------- explain ----------
+  async openExplain(orderId) {
+    this.explain = { orderId, loading: true }; this.paint();
+    try {
+      const d = await this.api('/api/orders/' + orderId + '/explain');
+      if (this.explain && this.explain.orderId === orderId) this.explain = { orderId, text: d.explanation };
+    } catch (err) {
+      if (this.explain && this.explain.orderId === orderId) this.explain = { orderId, errorCode: err.code, errorMsg: err.message };
+    }
+    this.paint();
+  }
+
+  // ---------- portfolio ----------
+  gotoPortfolio() {
+    this.view = 'portfolio';
+    this.pf = { orders: [], fills: [], ordersNext: undefined, fillsNext: undefined, loadingO: false, loadingF: false };
+    this.loadMorePfOrders(); this.loadMorePfFills();
+    this.paint();
+  }
+  async loadMorePfOrders() {
+    if (this.pf.loadingO) return;
+    this.pf.loadingO = true; this.paint();
+    try {
+      const cur = this.pf.ordersNext ? '&before=' + encodeURIComponent(this.pf.ordersNext) : '';
+      const d = await this.api('/api/orders?status=all&limit=25' + cur);
+      this.pf.orders = this.pf.orders.concat(d.orders);
+      this.pf.ordersNext = d.nextBefore;
+    } catch (e) {}
+    this.pf.loadingO = false; this.paint();
+  }
+  async loadMorePfFills() {
+    if (this.pf.loadingF) return;
+    this.pf.loadingF = true; this.paint();
+    try {
+      const cur = this.pf.fillsNext ? '&before=' + encodeURIComponent(this.pf.fillsNext) : '';
+      const d = await this.api('/api/fills?limit=25' + cur);
+      this.pf.fills = this.pf.fills.concat(d.fills);
+      this.pf.fillsNext = d.nextBefore;
+    } catch (e) {}
+    this.pf.loadingF = false; this.paint();
+  }
+
+  // ---------- sparkline ----------
+  drawSpark() {
+    const c = this._spark;
+    if (!c || this.view !== 'terminal') return;
+    const w = c.clientWidth, h = c.clientHeight;
+    if (!w || !h) return;
+    const dpr = window.devicePixelRatio || 1;
+    if (c.width !== Math.round(w * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+    const x = c.getContext('2d');
+    x.setTransform(dpr, 0, 0, dpr, 0, 0);
+    x.clearRect(0, 0, w, h);
+    const d = this.spark;
+    if (d.length < 2) return;
+    let mn = Math.min(...d), mx = Math.max(...d);
+    if (mn === mx) { mn -= 1; mx += 1; }
+    const up = d[d.length - 1] >= d[0];
+    x.beginPath();
+    d.forEach((v, i) => {
+      const px = (i / (d.length - 1)) * w;
+      const py = h - 5 - ((v - mn) / (mx - mn)) * (h - 10);
+      i ? x.lineTo(px, py) : x.moveTo(px, py);
+    });
+    x.strokeStyle = up ? '#2ebd85' : '#f6465d';
+    x.lineWidth = 1.5;
+    x.stroke();
+    x.lineTo(w, h); x.lineTo(0, h); x.closePath();
+    x.fillStyle = up ? 'rgba(46,189,133,0.07)' : 'rgba(246,70,93,0.07)';
+    x.fill();
+  }
+
+  // ---------- render ----------
+  renderVals() {
+    const green = '#2ebd85', red = '#f6465d', dim = '#66707f', amber = '#e8b451';
+    const isAuth = this.view === 'auth';
+    const signup = this.authMode === 'signup';
+    const ins = this.ins();
+    const st = this.stats[this.sym];
+    const me = this.me;
+
+    // book
+    const asks = [...this.askMap.entries()].sort((a, b) => a[0] - b[0]).slice(0, 12);
+    const bids = [...this.bidMap.entries()].sort((a, b) => b[0] - a[0]).slice(0, 12);
+    const maxQ = Math.max(1, ...asks.map((a) => a[1]), ...bids.map((b) => b[1]));
+    const askRows = asks.slice().reverse().map(([p, q], i, arr) => ({
+      key: 'a' + p, p: this.px(p), q: this.groupIN(q), w: Math.max(2, Math.round((q / maxQ) * 100)), fw: i === arr.length - 1 ? 600 : 400,
+    }));
+    const bidRows = bids.map(([p, q], i) => ({
+      key: 'b' + p, p: this.px(p), q: this.groupIN(q), w: Math.max(2, Math.round((q / maxQ) * 100)), fw: i === 0 ? 600 : 400,
+    }));
+    const bb = bids.length ? bids[0][0] : null, ba = asks.length ? asks[0][0] : null;
+    const spread = bb != null && ba != null ? ba - bb : null;
+
+    // stats header
+    const last = st ? st.lastPrice : null;
+    const open = st ? st.open24h : null;
+    let chgLine = '—', lastColor = '#cfd6e4';
+    if (last != null && open != null && open !== 0) {
+      const abs = last - open;
+      const pct = ((abs / open) * 100).toFixed(2);
+      lastColor = abs >= 0 ? green : red;
+      chgLine = (abs >= 0 ? '+' : '−') + this.px(Math.abs(abs)) + ' (' + (abs >= 0 ? '+' : '') + pct + '%)';
+    }
+
+    // watchlist
+    const watchRows = this.instruments.map((i) => {
+      const s = this.stats[i.symbol];
+      const l = s ? s.lastPrice : null, o = s ? s.open24h : null;
+      let chgF = '—', chgColor = '#8a94a6';
+      if (l != null && o != null && o !== 0) {
+        const pc = (((l - o) / o) * 100).toFixed(2);
+        chgF = (l >= o ? '+' : '') + pc + '%';
+        chgColor = l >= o ? green : red;
+      }
+      const active = i.symbol === this.sym;
+      return {
+        key: i.symbol, symbol: i.symbol, name: i.name,
+        lastF: l != null ? this.px(l, i.symbol) : '—',
+        chgF, chgColor,
+        bg: active ? '#141a25' : 'transparent',
+        edge: active ? amber : 'transparent',
+        select: () => this.selectSymbol(i.symbol),
+      };
+    });
+
+    // account
+    const rpnlTotal = me ? me.positions.reduce((a, p) => a + p.realizedPnl, 0) : 0;
+
+    // open orders (+ ghosts for cancels)
+    const statusColors = { open: '#8a94a6', partially_filled: amber, filled: green, canceled: '#66707f' };
+    const statusLabels = { open: 'open', partially_filled: 'partial', filled: 'filled', canceled: 'canceled' };
+    const ghostRows = this.ghosts.map((g) => ({ o: g.order, badge: g.badge, ghost: true }));
+    const liveRows = this.openOrders.map((o) => ({ o, badge: '', ghost: false }));
+    const openOrderRows = [...ghostRows, ...liveRows].map((r) => ({
+      key: r.o.id,
+      tm: this.tm(r.o.createdAt), sym: r.o.instrument,
+      side: r.o.side.toUpperCase(), sideColor: r.o.side === 'buy' ? green : red,
+      type: r.o.type, priceF: r.o.type === 'limit' ? this.px(r.o.price, r.o.instrument) : 'MKT',
+      qtyF: this.groupIN(r.o.qty), filledF: r.o.filledQty + '/' + r.o.qty,
+      statusL: statusLabels[r.o.status] || r.o.status, statusColor: statusColors[r.o.status] || '#8a94a6',
+      badge: r.badge, badgeDisplay: r.badge ? 'inline-block' : 'none',
+      cancelDisplay: r.ghost ? 'none' : 'inline-block',
+      opacity: r.ghost ? 0.55 : 1,
+      cancel: () => this.cancelOrder(r.o.id),
+    }));
+
+    // positions
+    const positionRows = me ? me.positions.filter((p) => p.qty > 0 || p.reservedQty > 0).map((p) => ({
+      key: p.instrument, sym: p.instrument,
+      qty: this.groupIN(p.qty), reserved: this.groupIN(p.reservedQty),
+      avgF: p.qty ? this.inr(Math.round(p.costBasis / p.qty)) : '—',
+      costF: this.inr(p.costBasis),
+      pnlF: this.inr(p.realizedPnl), pnlColor: p.realizedPnl >= 0 ? green : red,
+    })) : [];
+
+    // fills
+    const fillRows = this.myFills.slice(0, 50).map((f) => ({
+      key: f.id, tm: this.tm(f.ts), sym: f.instrument,
+      side: f.side.toUpperCase(), sideColor: f.side === 'buy' ? green : red,
+      priceF: this.px(f.price, f.instrument), qty: this.groupIN(f.qty), role: f.role,
+      explain: () => this.openExplain(f.orderId),
+    }));
+
+    // tape
+    const tapeRows = this.tape.map((t) => ({
+      key: 's' + t.seq, p: this.px(t.price), q: this.groupIN(t.qty), tm: this.tm(t.ts),
+      color: t.takerSide === 'buy' ? green : red,
+    }));
+
+    // order entry
+    const v = this.orderCalc();
+    const isBuy = this.side === 'buy', isLimit = this.otype === 'limit';
+    const pFree = (() => { const p = this.posOf(this.sym); return p ? p.qty - p.reservedQty : 0; })();
+    const sideColor = isBuy ? green : red;
+    let submitLabel = (isBuy ? 'BUY ' : 'SELL ') + this.sym;
+    if (this.placing) submitLabel = 'PLACING…';
+
+    // portfolio
+    const pfOrderRows = this.pf.orders.map((o) => ({
+      key: o.id, tm: this.tm(o.createdAt), sym: o.instrument,
+      side: o.side.toUpperCase(), sideColor: o.side === 'buy' ? green : red,
+      type: o.type, priceF: o.type === 'limit' ? this.px(o.price, o.instrument) : 'MKT',
+      qty: this.groupIN(o.qty), filledF: o.filledQty + '/' + o.qty,
+      avgF: o.filledQty ? this.avgPx(o.filledNotional, o.filledQty, o.instrument) : '—',
+      statusL: statusLabels[o.status] || o.status, statusColor: statusColors[o.status] || '#8a94a6',
+    }));
+    const pfFillRows = this.pf.fills.map((f) => ({
+      key: f.id, tm: this.tm(f.ts), sym: f.instrument,
+      side: f.side.toUpperCase(), sideColor: f.side === 'buy' ? green : red,
+      priceF: this.px(f.price, f.instrument), qty: this.groupIN(f.qty), role: f.role, orderId: f.orderId,
+    }));
+
+    const connMap = { live: [green, 'LIVE', 'none'], connecting: [amber, 'CONNECTING', 'bbPulse 1s infinite'], reconnecting: [amber, 'RECONNECTING', 'bbPulse 1s infinite'], offline: [dim, 'OFFLINE', 'none'] };
+    const [connColor, connLabel, connAnim] = connMap[this.conn] || connMap.offline;
+    const ex = this.explain;
+
+    return {
+      // views
+      isAuth, isApp: !isAuth, isTerminal: this.view === 'terminal', isPortfolio: this.view === 'portfolio',
+      // auth
+      authTitle: signup ? 'Create account' : 'Log in',
+      authBtnLabel: this.authBusy ? 'Working…' : signup ? 'Create account & start trading' : 'Log in',
+      authSwitchPrompt: signup ? 'Already have an account?' : 'New here?',
+      authSwitchAction: signup ? 'Log in' : 'Create one',
+      toggleAuthMode: () => { this.authMode = signup ? 'login' : 'signup'; this.authError = null; this.paint(); },
+      email: this.email, password: this.password,
+      onEmail: (e) => { this.email = e.target.value; this.paint(); },
+      onPassword: (e) => { this.password = e.target.value; this.paint(); },
+      submitAuth: (e) => this.submitAuth(e),
+      authBusy: this.authBusy,
+      hasAuthError: !!this.authError,
+      authErrorCode: this.authError ? this.authError.code : '',
+      authErrorMsg: this.authError ? this.authError.message : '',
+      // header
+      userEmail: this.user ? this.user.email : '',
+      connColor, connLabel, connAnim,
+      gotoTerminal: () => { this.view = 'terminal'; this.paint(); },
+      gotoPortfolio: () => this.gotoPortfolio(),
+      termNavBg: this.view === 'terminal' ? '#1d2430' : 'transparent',
+      termNavColor: this.view === 'terminal' ? '#cfd6e4' : dim,
+      pfNavBg: this.view === 'portfolio' ? '#1d2430' : 'transparent',
+      pfNavColor: this.view === 'portfolio' ? '#cfd6e4' : dim,
+      logout: () => this.logout(),
+      lastEvent: this.lastEvent,
+      // watchlist + account
+      watchRows,
+      cashF: me ? this.inr(me.cash) : '—',
+      reservedF: me ? this.inr(me.reservedCash) : '—',
+      rpnlF: me ? this.inr(rpnlTotal) : '—',
+      rpnlColor: rpnlTotal >= 0 ? green : red,
+      // book
+      sym: this.sym, symName: ins.name || '',
+      bookSyncing: this.bookSyncing, bookSeqF: String(this.bookSeq),
+      askRows, bidRows,
+      spreadF: spread != null ? this.px(spread) : '—',
+      spreadPctF: spread != null && ba ? '(' + ((spread / ba) * 100).toFixed(3) + '%)' : '',
+      // stats + spark
+      lastF: last != null ? this.px(last) : '—', lastColor, chgLine,
+      highF: st && st.high24h != null ? this.px(st.high24h) : '—',
+      lowF: st && st.low24h != null ? this.px(st.low24h) : '—',
+      volF: st ? this.groupIN(st.volume24h) : '—',
+      sparkRef: this.sparkRefFn,
+      // tabs
+      showOrders: this.tab === 'orders', showPositions: this.tab === 'positions', showFills: this.tab === 'fills',
+      setTabOrders: () => { this.tab = 'orders'; this.paint(); },
+      setTabPositions: () => { this.tab = 'positions'; this.paint(); },
+      setTabFills: () => { this.tab = 'fills'; this.paint(); },
+      tabOrdersEdge: this.tab === 'orders' ? amber : 'transparent',
+      tabOrdersColor: this.tab === 'orders' ? '#cfd6e4' : dim,
+      tabPositionsEdge: this.tab === 'positions' ? amber : 'transparent',
+      tabPositionsColor: this.tab === 'positions' ? '#cfd6e4' : dim,
+      tabFillsEdge: this.tab === 'fills' ? amber : 'transparent',
+      tabFillsColor: this.tab === 'fills' ? '#cfd6e4' : dim,
+      openOrderRows, noOpenOrders: openOrderRows.length === 0,
+      positionRows, noPositions: positionRows.length === 0,
+      fillRows, noFills: fillRows.length === 0,
+      // order entry
+      isLimit, isMarket: !isLimit,
+      setBuy: () => { this.side = 'buy'; this.orderMsg = null; this.paint(); },
+      setSell: () => { this.side = 'sell'; this.orderMsg = null; this.paint(); },
+      setLimit: () => { this.otype = 'limit'; this.orderMsg = null; this.paint(); },
+      setMarket: () => { this.otype = 'market'; this.orderMsg = null; this.paint(); },
+      buyBg: isBuy ? green : '#151b26', buyColor: isBuy ? '#0b0e13' : dim,
+      sellBg: !isBuy ? red : '#151b26', sellColor: !isBuy ? '#0b0e13' : dim,
+      limitColor: isLimit ? '#cfd6e4' : dim, limitFw: isLimit ? 600 : 400,
+      marketColor: !isLimit ? '#cfd6e4' : dim, marketFw: !isLimit ? 600 : 400,
+      priceStr: this.priceStr, qtyStr: this.qtyStr,
+      onPrice: (e) => { this.priceStr = e.target.value; this.paint(); },
+      onPriceBlur: () => this.snapPrice(),
+      onQty: (e) => { this.qtyStr = e.target.value.replace(/[^\d]/g, ''); this.paint(); },
+      tickF: this.pxPlain(ins.tickSize),
+      pricePlaceholder: last != null ? this.pxPlain(last) : '0.00',
+      marketRefLine: isBuy
+        ? (ba != null ? 'matches best ask ≈ ₹' + this.px(ba) + ' — reserved at best ask' : 'no asks in book')
+        : (bb != null ? 'matches best bid ≈ ₹' + this.px(bb) : 'no bids in book'),
+      hasTickHint: !!v.tickHint, tickHint: v.tickHint,
+      estLabel: isBuy ? (isLimit ? 'Est. cost' : 'Est. cost (best ask)') : (isLimit ? 'Est. proceeds' : 'Est. proceeds (best bid)'),
+      estF: v.est != null ? this.inr(v.est) : '—',
+      availLabel: isBuy ? 'Available cash' : 'Free position',
+      availF: isBuy ? (me ? this.inr(me.cash) : '—') : this.groupIN(pFree) + ' ' + this.sym,
+      submitLabel,
+      submitBg: v.disabled ? '#1a212c' : sideColor,
+      submitColor: v.disabled ? '#4c5666' : '#0b0e13',
+      submitCursor: v.disabled ? 'default' : 'pointer',
+      submitDisabled: v.disabled,
+      hasReason: !!v.reason && !this.placing, submitReason: v.reason || '',
+      hasOrderMsg: !!this.orderMsg,
+      orderMsgText: this.orderMsg ? this.orderMsg.text : '',
+      orderMsgColor: this.orderMsg ? this.orderMsg.color : '#8a94a6',
+      submitOrder: () => this.submitOrder(),
+      // tape
+      tapeRows, tradeSeqF: String(this.tradeSeq),
+      // explain
+      explainOpen: !!ex,
+      explainOrderId: ex ? ex.orderId : '',
+      explainLoading: !!(ex && ex.loading),
+      hasExplainText: !!(ex && ex.text), explainText: ex && ex.text ? ex.text : '',
+      hasExplainError: !!(ex && ex.errorCode),
+      explainErrorCode: ex && ex.errorCode ? ex.errorCode : '',
+      explainErrorMsg: ex && ex.errorMsg ? ex.errorMsg : '',
+      closeExplain: () => { this.explain = null; this.paint(); },
+      // portfolio
+      pfOrderRows, pfFillRows,
+      loadMoreOrders: () => this.loadMorePfOrders(),
+      loadMoreFills: () => this.loadMorePfFills(),
+      pfOrdersBtnDisabled: this.pf.loadingO || this.pf.ordersNext === null,
+      pfOrdersBtnLabel: this.pf.loadingO ? 'Loading…' : this.pf.ordersNext === null ? 'End of history' : 'Load more',
+      pfOrdersBtnColor: this.pf.ordersNext === null ? '#3d4655' : '#8a94a6',
+      pfFillsBtnDisabled: this.pf.loadingF || this.pf.fillsNext === null,
+      pfFillsBtnLabel: this.pf.loadingF ? 'Loading…' : this.pf.fillsNext === null ? 'End of history' : 'Load more',
+      pfFillsBtnColor: this.pf.fillsNext === null ? '#3d4655' : '#8a94a6',
+    };
+  }
+}
+</script>
+</body>
+</html>
