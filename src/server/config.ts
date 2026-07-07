@@ -32,6 +32,10 @@ export interface Config {
   jwtSecret: string;
   /** Liquidity bots (Phase 4). Off in tests/benchmarks: they inject nondeterministic flow. */
   bots: boolean;
+  /** AI explainer (Phase 4). Absent → the explain endpoint returns INTERNAL, all other data still served. */
+  anthropicApiKey?: string;
+  /** Model for explanations; defaults to claude-opus-4-8. Set AI_MODEL to override (e.g. a faster/cheaper model). */
+  aiModel?: string;
 }
 
 export function loadConfig(): Config {
@@ -41,5 +45,7 @@ export function loadConfig(): Config {
       process.env.DATABASE_URL ?? 'postgres://postgres:exsim@localhost:5433/exchange',
     jwtSecret: process.env.JWT_SECRET ?? 'dev-secret-not-for-production',
     bots: process.env.BOTS !== 'off',
+    anthropicApiKey: process.env.ANTHROPIC_API_KEY,
+    aiModel: process.env.AI_MODEL,
   };
 }

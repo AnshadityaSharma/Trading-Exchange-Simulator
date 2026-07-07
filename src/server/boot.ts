@@ -14,12 +14,19 @@
 //   5. write-behind, HTTP, WS, bots — begin accepting traffic
 
 import { createServer, type Server } from 'node:http';
+import Anthropic from '@anthropic-ai/sdk';
 import type pg from 'pg';
-import { UnavailableExplainer, type Explainer } from '../ai/explainer.js';
+import {
+  AnthropicExplainer,
+  DEFAULT_AI_MODEL,
+  UnavailableExplainer,
+  type Explainer,
+  type ExplainDataSource,
+} from '../ai/explainer.js';
 import { Bots } from '../bots/bots.js';
 import { seedBots } from '../bots/seed.js';
 import { createPool, migrate } from '../db/db.js';
-import { loadAccounts, loadTradeHistory, reconcileOpenOrders } from '../db/queries.js';
+import { fillsForOrder, getOrder, loadAccounts, loadTradeHistory, reconcileOpenOrders } from '../db/queries.js';
 import { WriteBehind } from '../db/write-behind.js';
 import { Accounts } from './accounts.js';
 import { buildApp } from './app.js';
@@ -38,7 +45,7 @@ export interface Backend {
   close(): Promise<void>;
 }
 
-export async function boot(config: Config, explainer: Explainer = new UnavailableExplainer()): Promise<Backend> {
+export async function boot(config: Config, explainerOverride?: Explainer): Promise<Backend> {
   const pool = createPool(config.databaseUrl);
   await migrate(pool);
   const reconciledOrders = await reconcileOpenOrders(pool);
@@ -52,6 +59,7 @@ export async function boot(config: Config, explainer: Explainer = new Unavailabl
 
   const wb = new WriteBehind(pool);
   const exchange = new Exchange(INSTRUMENTS, accounts, wb);
+  const explainer = explainerOverride ?? buildExplainer(config, pool, exchange);
 
   const history = await loadTradeHistory(pool);
   for (const [symbol, seq] of history.maxSeq) exchange.initTradeSeq(symbol, seq);
@@ -95,4 +103,43 @@ export async function boot(config: Config, explainer: Explainer = new Unavailabl
       await pool.end();
     },
   };
+}
+
+/**
+ * The AI explainer, wired to Postgres: with no API key configured, the stub
+ * that reports explanations unavailable; otherwise the real Anthropic-backed
+ * one. The SQL data-fetcher lives here (not in the AI module) so queries stay
+ * in the query layer and the explainer stays DB-free and unit-testable.
+ */
+function buildExplainer(config: Config, pool: pg.Pool, exchange: Exchange): Explainer {
+  if (!config.anthropicApiKey) return new UnavailableExplainer();
+
+  const client = new Anthropic({ apiKey: config.anthropicApiKey });
+  const dataSource: ExplainDataSource = async (orderId) => {
+    const order = await getOrder(pool, orderId);
+    if (!order) return null;
+    const meta = exchange.meta(order.symbol);
+    if (!meta) return null;
+    const fills = await fillsForOrder(pool, orderId);
+    return {
+      order: {
+        id: order.id,
+        side: order.side as 'buy' | 'sell',
+        type: order.type as 'limit' | 'market',
+        price: order.price,
+        qty: order.qty,
+        filledQty: order.filledQty,
+        filledNotional: order.filledNotional,
+        status: order.status,
+      },
+      fills: fills.map((f) => ({ price: f.price, qty: f.qty })),
+      instrument: { symbol: meta.symbol, name: meta.name, priceScale: meta.priceScale },
+    };
+  };
+
+  return new AnthropicExplainer({
+    client: { create: (p) => client.messages.create(p) },
+    model: config.aiModel ?? DEFAULT_AI_MODEL,
+    dataSource,
+  });
 }
