@@ -69,6 +69,8 @@ src/
   bots/          # liquidity bots
   ai/            # explainability module (interface + anthropic impl)
   db/            # schema, migrations, queries
+web/             # frontend (BB Terminal, built in Claude Design) — static files served by express
+e2e/             # browser-level tests that own server processes (restart recovery)
 bench/           # benchmark harness + results
 docs/
   api-contract.md    # frozen REST + WS contract for frontend
