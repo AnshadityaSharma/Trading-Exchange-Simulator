@@ -111,8 +111,10 @@ export class MarketMaker {
 /**
  * Noise trader: fires small market orders so trades print and the price
  * moves. Side selection mean-reverts toward the seeded inventory (65/35),
- * so the bot never bleeds out its shares or its cash — the price walk comes
- * from the 35% contrarian ticks, not from a drifting inventory.
+ * which keeps its shares and cash from drifting away under normal operation —
+ * the price walk comes from the 35% contrarian ticks, not from a drifting
+ * inventory. It's a heuristic, not a hard invariant: an unlucky enough run
+ * could still deplete one side, which the tick handles by skipping (below).
  */
 export class NoiseTrader {
   constructor(
@@ -124,10 +126,15 @@ export class NoiseTrader {
   ) {}
 
   tick(meta: InstrumentMeta): void {
-    const qty = (1 + Math.floor(this.rng() * this.cfg.noiseMaxQty)) * meta.lotSize;
+    // Draw both random values up front in a fixed order — qty first, then side.
+    // The seeded tests depend on this draw order; keeping the draws here (rather
+    // than inline) makes it impossible to reorder them by accident.
+    const qtyDraw = this.rng();
+    const sideDraw = this.rng();
+    const qty = (1 + Math.floor(qtyDraw * this.cfg.noiseMaxQty)) * meta.lotSize;
     const pos = this.exchange.accounts.position(this.userId, meta.symbol);
     const toward: Side = pos.qty < this.targetQty ? 'buy' : 'sell';
-    const side: Side = this.rng() < 0.65 ? toward : toward === 'buy' ? 'sell' : 'buy';
+    const side: Side = sideDraw < 0.65 ? toward : toward === 'buy' ? 'sell' : 'buy';
     try {
       this.exchange.submit(this.userId, { instrument: meta.symbol, side, type: 'market', qty });
     } catch {
