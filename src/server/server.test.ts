@@ -322,12 +322,17 @@ describe('the full trade flow', () => {
     expect(foreign.status).toBe(404);
   });
 
-  it('explains endpoint returns INTERNAL from the stub explainer', async () => {
+  it('explains endpoint returns a real rule-based explanation with no API key', async () => {
+    // No ANTHROPIC_API_KEY in the test config → the offline RuleBasedExplainer,
+    // so the demo path produces a genuine explanation at zero API cost.
     await backend.wb.flush();
     const fills = await api('GET', '/fills', { token: buyer.token });
     const res = await api('GET', `/orders/${fills.json.fills[0].orderId}/explain`, { token: buyer.token });
-    expect(res.status).toBe(500);
-    expect(res.json.error.code).toBe('INTERNAL');
+    expect(res.status).toBe(200);
+    expect(typeof res.json.explanation).toBe('string');
+    expect(res.json.explanation.length).toBeGreaterThan(0);
+    expect(res.json.explanation).toContain('ACME');
+    expect(typeof res.json.generatedAt).toBe('string');
   });
 });
 

@@ -19,7 +19,7 @@ import type pg from 'pg';
 import {
   AnthropicExplainer,
   DEFAULT_AI_MODEL,
-  UnavailableExplainer,
+  RuleBasedExplainer,
   type Explainer,
   type ExplainDataSource,
 } from '../ai/explainer.js';
@@ -106,15 +106,13 @@ export async function boot(config: Config, explainerOverride?: Explainer): Promi
 }
 
 /**
- * The AI explainer, wired to Postgres: with no API key configured, the stub
- * that reports explanations unavailable; otherwise the real Anthropic-backed
- * one. The SQL data-fetcher lives here (not in the AI module) so queries stay
- * in the query layer and the explainer stays DB-free and unit-testable.
+ * The AI explainer, wired to Postgres. With no API key configured, the offline
+ * rule-based engine (the demo default — real explanations at zero API cost);
+ * with ANTHROPIC_API_KEY set, the LLM-backed one. Both read the SAME facts via
+ * the shared data source below, which lives here (not in the AI module) so
+ * queries stay in the query layer and the explainer stays DB-free and testable.
  */
 function buildExplainer(config: Config, pool: pg.Pool, exchange: Exchange): Explainer {
-  if (!config.anthropicApiKey) return new UnavailableExplainer();
-
-  const client = new Anthropic({ apiKey: config.anthropicApiKey });
   const dataSource: ExplainDataSource = async (orderId) => {
     const order = await getOrder(pool, orderId);
     if (!order) return null;
@@ -132,11 +130,14 @@ function buildExplainer(config: Config, pool: pg.Pool, exchange: Exchange): Expl
         filledNotional: order.filledNotional,
         status: order.status,
       },
-      fills: fills.map((f) => ({ price: f.price, qty: f.qty })),
+      fills: fills.map((f) => ({ price: f.price, qty: f.qty, role: f.role as 'maker' | 'taker' })),
       instrument: { symbol: meta.symbol, name: meta.name, priceScale: meta.priceScale },
     };
   };
 
+  if (!config.anthropicApiKey) return new RuleBasedExplainer({ dataSource });
+
+  const client = new Anthropic({ apiKey: config.anthropicApiKey });
   return new AnthropicExplainer({
     client: { create: (p) => client.messages.create(p) },
     model: config.aiModel ?? DEFAULT_AI_MODEL,
