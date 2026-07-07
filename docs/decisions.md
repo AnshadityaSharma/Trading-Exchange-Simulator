@@ -144,3 +144,25 @@ Written as interview prep: each entry answers "why did you do it this way?"
 **Decision:** The GET endpoints that read persisted state (`/orders`, `/orders/:id`, `/fills`, `/orders/:id/explain`, and the closed-order lookup inside cancel) call `wb.flush()` before querying Postgres.
 
 **Why:** `POST /orders` returns 201 synchronously, but persistence is async (D14) — without this, a client that reads back its own just-placed order would get a 404 for up to a flush window (~50ms, unbounded under retry), and canceling an order that filled within that window returned `NOT_FOUND` instead of `ORDER_NOT_OPEN`. Both were flagged in the Phase 3 review. Flushing on read gives read-your-writes consistency at the cost of one (batched, serialized) flush per read; reads are human-frequency, far off the hot path, so the cost is irrelevant. The alternative — serving order/fill history from the in-memory records — would duplicate the query layer and re-introduce the open/closed-order bookkeeping the DB already owns.
+
+---
+
+## Phase 4 — Liquidity bots
+
+### D21. Bots are ordinary users, seeded through the persisted path
+
+**Decision:** The two bot accounts (market maker, noise trader) are real rows in `users`/`balances`/`positions`, created idempotently at boot *before* `loadAccounts` runs (`src/bots/seed.ts`), so they enter memory through the exact same path as human users. They trade through the public `Exchange.submit`/`cancel` — same funds checks, reservations, persistence, and events. Seeded once, never reset: bot wealth evolves across restarts like anyone's. Their emails are never issued and their password is 32 random hashed-and-discarded bytes, so the accounts are unreachable through the API.
+
+**Why:** Memory is reloaded from Postgres at every boot (D16), so state seeded only into the in-memory `Accounts` works until the first restart and then vanishes — while the bots' persisted orders would still reference a user the `users` table doesn't have (FK violation on flush). This was flagged in the Phase 3 review before any bot code existed. Going through the public submit path means no special cases downstream: boot reconciliation (D15), write-behind (D14), and money-conservation invariants all hold for bots for free, and the restart test proves it.
+
+### D22. Market maker: diff-based quote maintenance, not cancel-and-replace
+
+**Decision:** Each tick the maker computes the desired quote set around the mid (last trade price, else the instrument's reference price) and converges to it: quotes already at a desired price are left untouched (even partially filled — replaced only once fully consumed), stale quotes are canceled *before* new ones are placed, missing ones are submitted. A steady book produces zero orders, zero cancels, zero DB rows per tick.
+
+**Why:** The naive strategy (cancel everything, requote everything, every tick) would write ~6 order rows per instrument per tick to Postgres forever — hundreds of thousands of junk rows a day for a book that didn't move. Diffing bounds churn to actual price movement. Canceling stale quotes first makes self-crossing structurally impossible when the mid jumps (a recentered bid can never meet the bot's own old ask). Known accepted cost: bot order history still grows the `orders` table with every real requote; if it ever matters, an age-based cleanup of terminal bot orders is a 5-line cron, deliberately not built for v1.
+
+### D23. Noise trader: market orders with an inventory-mean-reverting side bias
+
+**Decision:** A second bot user fires small market orders at jittered intervals (0.5–1.5× the mean, per instrument). Side selection is 65/35 biased toward returning its position to the seeded quantity; sizes are 1–5 lots. Business rejections (empty book, insufficient funds) skip the tick silently.
+
+**Why:** Without takers there are no trades: `lastPrice` never moves, stats stay null, the tape is empty, and the AI explainer has nothing to explain. Each take moves the price by roughly the half-spread and the maker recenters on it — a random walk emerges from the 35% contrarian ticks with no price model to defend. The mean-reversion bias is the loop's stability guarantee: the noise bot can never bleed out its inventory or cash, so the market runs unattended indefinitely. It must be a *different* user than the maker — otherwise self-trade prevention (D5) would cancel the maker's quotes instead of trading with them.
