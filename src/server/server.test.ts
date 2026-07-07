@@ -12,7 +12,8 @@ import type { Config } from './config.js';
 const ADMIN_URL = process.env.TEST_ADMIN_DATABASE_URL ?? 'postgres://postgres:exsim@localhost:5433/postgres';
 const TEST_DB_URL = process.env.TEST_DATABASE_URL ?? 'postgres://postgres:exsim@localhost:5433/exchange_test';
 
-const config: Config = { port: 0, databaseUrl: TEST_DB_URL, jwtSecret: 'test-secret' };
+// bots: false — these tests assert exact book states; bot flow would race them.
+const config: Config = { port: 0, databaseUrl: TEST_DB_URL, jwtSecret: 'test-secret', bots: false };
 
 let backend: Backend;
 let base: string;

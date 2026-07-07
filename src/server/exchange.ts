@@ -176,6 +176,19 @@ export class Exchange {
     };
   }
 
+  /**
+   * Live (open / partially filled) orders for one user on one instrument.
+   * The market-maker bot polls this every quote-maintenance tick; the scan
+   * is O(resting orders on the instrument), memory only.
+   */
+  openOrdersFor(userId: number, symbol: string): OrderRecord[] {
+    const out: OrderRecord[] = [];
+    for (const rec of this.inst(symbol).byEngineId.values()) {
+      if (rec.userId === userId) out.push(rec);
+    }
+    return out;
+  }
+
   tape(symbol: string, limit: number): TapeTrade[] {
     const t = this.inst(symbol).tape;
     return t.slice(Math.max(0, t.length - limit)).reverse(); // most recent first

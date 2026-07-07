@@ -30,6 +30,8 @@ export interface Config {
   port: number;
   databaseUrl: string;
   jwtSecret: string;
+  /** Liquidity bots (Phase 4). Off in tests/benchmarks: they inject nondeterministic flow. */
+  bots: boolean;
 }
 
 export function loadConfig(): Config {
@@ -38,5 +40,6 @@ export function loadConfig(): Config {
     databaseUrl:
       process.env.DATABASE_URL ?? 'postgres://postgres:exsim@localhost:5433/exchange',
     jwtSecret: process.env.JWT_SECRET ?? 'dev-secret-not-for-production',
+    bots: process.env.BOTS !== 'off',
   };
 }

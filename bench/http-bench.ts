@@ -45,7 +45,8 @@ async function main(): Promise<void> {
   await wipe.query('DROP SCHEMA public CASCADE; CREATE SCHEMA public;');
   await wipe.end();
 
-  const backend = await boot({ port: 0, databaseUrl: DB_URL, jwtSecret: 'bench-secret' });
+  // bots: false — the benchmark measures the request path, not bot flow.
+  const backend = await boot({ port: 0, databaseUrl: DB_URL, jwtSecret: 'bench-secret', bots: false });
   const base = `http://localhost:${backend.port}`;
 
   console.log('Trading Exchange Simulator — full HTTP path benchmark (POST /api/orders over localhost)');

@@ -7,12 +7,17 @@
 //   1. migrate              — schema exists
 //   2. reconcileOpenOrders  — DB says no order is open (the book died with
 //                             the last process; reservations released)
-//   3. load accounts/trades — memory boots from that consistent snapshot
-//   4. write-behind, HTTP, WS — begin accepting traffic
+//   3. seedBots             — bot rows exist in the DB, so step 4 loads them
+//                             like any user (Phase 3 review: seed state must
+//                             enter through the persisted path)
+//   4. load accounts/trades — memory boots from that consistent snapshot
+//   5. write-behind, HTTP, WS, bots — begin accepting traffic
 
 import { createServer, type Server } from 'node:http';
 import type pg from 'pg';
 import { UnavailableExplainer, type Explainer } from '../ai/explainer.js';
+import { Bots } from '../bots/bots.js';
+import { seedBots } from '../bots/seed.js';
 import { createPool, migrate } from '../db/db.js';
 import { loadAccounts, loadTradeHistory, reconcileOpenOrders } from '../db/queries.js';
 import { WriteBehind } from '../db/write-behind.js';
@@ -37,6 +42,7 @@ export async function boot(config: Config, explainer: Explainer = new Unavailabl
   const pool = createPool(config.databaseUrl);
   await migrate(pool);
   const reconciledOrders = await reconcileOpenOrders(pool);
+  const botIds = config.bots ? await seedBots(pool, INSTRUMENTS) : null;
 
   const accounts = new Accounts();
   for (const acct of await loadAccounts(pool)) {
@@ -65,6 +71,11 @@ export async function boot(config: Config, explainer: Explainer = new Unavailabl
   const server = createServer(app);
   const ws = new WsServer(server, exchange, config.jwtSecret);
 
+  // After the WS server wires exchange.events (first quotes fan out), before
+  // listen (the book is populated before the first request can arrive).
+  const bots = botIds ? new Bots(exchange, botIds) : null;
+  bots?.start();
+
   await new Promise<void>((resolve) => server.listen(config.port, resolve));
   const address = server.address();
   const port = typeof address === 'object' && address ? address.port : config.port;
@@ -77,6 +88,7 @@ export async function boot(config: Config, explainer: Explainer = new Unavailabl
     reconciledOrders,
     port,
     async close() {
+      bots?.stop();
       ws.close();
       await new Promise<void>((resolve) => server.close(() => resolve()));
       await wb.stop();
