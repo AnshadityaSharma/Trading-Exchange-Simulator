@@ -38,7 +38,7 @@ function fakeMessage(text: string, stopReason: Anthropic.Message['stop_reason'] 
     id: 'msg_1',
     type: 'message',
     role: 'assistant',
-    model: 'claude-opus-4-8',
+    model: 'claude-haiku-4-5',
     stop_reason: stopReason,
     stop_sequence: null,
     content: text ? [{ type: 'text', text, citations: null }] : [],
@@ -47,7 +47,7 @@ function fakeMessage(text: string, stopReason: Anthropic.Message['stop_reason'] 
 }
 
 function explainerWith(client: AiMessagesClient, data: ExplainData | null = buyData) {
-  return new AnthropicExplainer({ client, model: 'claude-opus-4-8', dataSource: async () => data });
+  return new AnthropicExplainer({ client, model: 'claude-haiku-4-5', dataSource: async () => data });
 }
 
 describe('buildPrompt', () => {
@@ -88,7 +88,7 @@ describe('AnthropicExplainer', () => {
     expect(result.generatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(create).toHaveBeenCalledTimes(1);
     const params = create.mock.calls[0]![0];
-    expect(params.model).toBe('claude-opus-4-8');
+    expect(params.model).toBe('claude-haiku-4-5');
     expect(params.system).toContain('retail investor');
     expect(String((params.messages[0]!).content)).toContain('Acme Industries');
   });

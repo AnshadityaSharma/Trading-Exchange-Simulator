@@ -34,7 +34,7 @@ export interface Config {
   bots: boolean;
   /** AI explainer (Phase 4). Absent → the explain endpoint returns INTERNAL, all other data still served. */
   anthropicApiKey?: string;
-  /** Model for explanations; defaults to claude-opus-4-8. Set AI_MODEL to override (e.g. a faster/cheaper model). */
+  /** Model for explanations; defaults to claude-haiku-4-5 (demo default). Set AI_MODEL to override (e.g. claude-opus-4-8). */
   aiModel?: string;
 }
 

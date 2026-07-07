@@ -30,8 +30,11 @@ export class UnavailableExplainer implements Explainer {
 
 // --------------------------------------------------------------- real impl
 
-/** Model used when AI_MODEL is unset. Overridable so cost/latency is the deployer's call. */
-export const DEFAULT_AI_MODEL = 'claude-opus-4-8';
+// Model used when AI_MODEL is unset. Haiku 4.5 is the demo default: the
+// explanation is a short, human-facing call where latency and cost matter more
+// than the extra reasoning headroom of a frontier model. Set AI_MODEL (e.g.
+// claude-opus-4-8) to trade cost for richer explanations — the deployer's call.
+export const DEFAULT_AI_MODEL = 'claude-haiku-4-5';
 
 /** The facts of one order the explainer needs — assembled by the caller (boot.ts). */
 export interface ExplainData {
