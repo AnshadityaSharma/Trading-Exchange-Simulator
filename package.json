@@ -11,7 +11,8 @@
     "build": "tsc",
     "start": "node dist/src/server/index.js",
     "bench": "tsc && node dist/bench/engine-bench.js",
-    "bench:http": "tsc && node dist/bench/http-bench.js"
+    "bench:http": "tsc && node dist/bench/http-bench.js",
+    "e2e:restart": "tsc && node e2e/restart.mjs"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
@@ -19,6 +20,7 @@
     "@types/node": "^24.0.0",
     "@types/pg": "^8.20.0",
     "@types/ws": "^8.18.1",
+    "puppeteer-core": "^25.3.0",
     "typescript": "^5.8.0",
     "vitest": "^3.2.0"
   },

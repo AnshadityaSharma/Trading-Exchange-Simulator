@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "exchange",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["dist/src/server/index.js"],
+      "port": 3000
+    }
+  ]
+}
