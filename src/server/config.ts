@@ -39,6 +39,11 @@ export interface Config {
 }
 
 export function loadConfig(): Config {
+  if (!process.env.JWT_SECRET) {
+    // The fallback secret is public (it's in this file) — anyone could forge
+    // tokens. Fine on a laptop, never on a deploy, hence loud not fatal.
+    console.warn('WARNING: JWT_SECRET not set — using the public dev secret. Set it in production.');
+  }
   return {
     port: Number(process.env.PORT ?? 3000),
     databaseUrl:

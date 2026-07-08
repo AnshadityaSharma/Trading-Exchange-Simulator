@@ -14,7 +14,20 @@ import pg from 'pg';
 pg.types.setTypeParser(20, (v) => Number(v));
 
 export function createPool(databaseUrl: string): pg.Pool {
-  return new pg.Pool({ connectionString: databaseUrl, max: 10 });
+  // sslmode=require (libpq convention) → TLS on, CA verification off. Managed
+  // Postgres (Render) requires TLS but presents a cert that isn't in Node's
+  // default CA bundle, and pg's own sslmode parsing has changed semantics
+  // across versions — so we interpret the parameter ourselves and pass an
+  // explicit `ssl` config, which is deterministic. Encryption-without-CA
+  // matches what libpq's "require" means. Local dev URLs carry no sslmode.
+  const url = new URL(databaseUrl);
+  const sslRequired = url.searchParams.get('sslmode') === 'require';
+  url.searchParams.delete('sslmode');
+  return new pg.Pool({
+    connectionString: url.toString(),
+    max: 10,
+    ssl: sslRequired ? { rejectUnauthorized: false } : undefined,
+  });
 }
 
 /** Apply schema.sql (idempotent — every statement is IF NOT EXISTS). */

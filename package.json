@@ -4,6 +4,9 @@
   "private": true,
   "description": "Live paper-trading exchange with an in-memory price-time priority matching engine",
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
