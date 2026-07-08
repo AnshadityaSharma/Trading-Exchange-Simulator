@@ -102,9 +102,11 @@ Stated plainly, because they are real:
 
 - **Database cold starts.** The database is Neon's free tier, whose compute
   suspends after ~5 minutes of idle; the next query resumes it (typically a
-  second or two). An external pinger (cron-job.org) requests `GET /api/health`
-  every 10 minutes — the endpoint runs a `SELECT 1` so each ping wakes both the
-  web service and the database compute. With a 10-minute interval Neon can
+  second or two). An external pinger (cron-job.org) requests
+  `GET /api/health?deep=1` every 10 minutes — the deep variant runs a
+  `SELECT 1` and reports `"db": "ok"`, so each ping wakes both the web service
+  and the database compute (plain `/api/health` is process liveness only).
+  With a 10-minute interval Neon can
   still suspend between pings, so a visitor may occasionally pay the ~1–2s
   resume on their first request; the pinger bounds how stale things get, it
   does not eliminate the suspend.

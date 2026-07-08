@@ -121,6 +121,12 @@ describe('health and auth', () => {
     expect(res.json).toEqual({ status: 'ok' });
   });
 
+  it('deep health round-trips the database and says so', async () => {
+    const res = await api('GET', '/health?deep=1');
+    expect(res.status).toBe(200);
+    expect(res.json).toEqual({ status: 'ok', db: 'ok' });
+  });
+
   it('signs up a user with starting cash and lets them log in', async () => {
     const res = await api('POST', '/auth/signup', { body: { email: 'ansh@test.dev', password: 'password123' } });
     expect(res.status).toBe(201);

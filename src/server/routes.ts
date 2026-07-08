@@ -201,12 +201,17 @@ export function buildRoutes(exchange: Exchange, pool: pg.Pool, wb: WriteBehind, 
 
   // ----------------------------------------------------------------- meta
 
-  router.get('/health', wrap(async (_req, res) => {
-    // Trivial DB round trip: the keep-warm pinger hits this endpoint, and the
-    // query wakes the Postgres compute too (Neon suspends when idle), not just
-    // the web process. Also makes "ok" mean the DB is actually reachable.
+  router.get('/health', wrap(async (req, res) => {
+    // Plain: process liveness only — also the no-op control run in the HTTP
+    // benchmark, so it must stay DB-free. ?deep=1 (the keep-warm pinger's
+    // variant) round-trips the DB so one external ping wakes both this
+    // service and Neon's suspended compute, and says so distinguishably.
+    if (req.query.deep === undefined) {
+      res.json({ status: 'ok' });
+      return;
+    }
     await pool.query('SELECT 1');
-    res.json({ status: 'ok' });
+    res.json({ status: 'ok', db: 'ok' });
   }));
 
   return router;
