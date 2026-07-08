@@ -8,7 +8,8 @@ an AI layer built from the exact execution facts.
 
 Everything is virtual: no real money, no real market data, no brokerage.
 
-**Live demo:** <!-- LIVE_URL --> *(deployment in progress — URL lands here)*
+**Live demo:** <https://trading-exchange-simulator-production.up.railway.app> —
+sign up with any email (never verified, purely an identifier) and trade.
 
 <!-- SCREENSHOT -->
 
