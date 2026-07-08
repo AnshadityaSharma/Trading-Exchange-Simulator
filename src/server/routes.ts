@@ -201,7 +201,11 @@ export function buildRoutes(exchange: Exchange, pool: pg.Pool, wb: WriteBehind, 
 
   // ----------------------------------------------------------------- meta
 
-  router.get('/health', wrap((_req, res) => {
+  router.get('/health', wrap(async (_req, res) => {
+    // Trivial DB round trip: the keep-warm pinger hits this endpoint, and the
+    // query wakes the Postgres compute too (Neon suspends when idle), not just
+    // the web process. Also makes "ok" mean the DB is actually reachable.
+    await pool.query('SELECT 1');
     res.json({ status: 'ok' });
   }));
 
