@@ -143,6 +143,6 @@ sharding or a faster HTTP framework — both out of scope for v1.
   realism, honest about mechanism.
 - Single instrument, single thread — per CLAUDE.md §3 that is the sharding
   unit; multi-instrument throughput would scale with cores.
-- All numbers are from the dev laptop above. The public deployment runs on a
-  Render free-tier instance (0.1 vCPU, 512MB) — it is substantially slower
-  than these figures and is not the benchmark environment.
+- All numbers are from the dev laptop above. The public deployment (Railway
+  trial tier + Neon serverless Postgres) is substantially slower than these
+  figures and is not the benchmark environment.

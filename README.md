@@ -33,9 +33,9 @@ than 20× the throughput target at the most conservative reading, with roughly
 
 Full methodology, per-percentile tables, control runs, and honest caveats
 (thermal variance, clock quantization, synthetic-flow limits) are in
-[bench/results.md](bench/results.md). **The deployed free-tier instance is much
-slower than the benchmark machine** — the published numbers describe the
-engine, not the demo host.
+[bench/results.md](bench/results.md). **The deployed instance (Railway trial
+tier, with Neon serverless Postgres) is much slower than the benchmark
+machine** — the published numbers describe the engine, not the demo host.
 
 ## Architecture
 
@@ -99,11 +99,14 @@ The frozen REST + WebSocket contract the frontend is built against is
 
 Stated plainly, because they are real:
 
-- **Cold starts.** The demo runs on Render's free tier, which spins the
-  instance down after ~15 minutes of idle. A hit on a cold instance waits for
-  boot (typically 30–60 seconds). An external pinger (cron-job.org) requests
-  `GET /api/health` every 10 minutes to keep it warm, but if the pinger lapses,
-  the first visitor pays the cold start.
+- **Database cold starts.** The database is Neon's free tier, whose compute
+  suspends after ~5 minutes of idle; the next query resumes it (typically a
+  second or two). An external pinger (cron-job.org) requests `GET /api/health`
+  every 10 minutes — the endpoint runs a `SELECT 1` so each ping wakes both the
+  web service and the database compute. With a 10-minute interval Neon can
+  still suspend between pings, so a visitor may occasionally pay the ~1–2s
+  resume on their first request; the pinger bounds how stale things get, it
+  does not eliminate the suspend.
 - **Restarts cancel open orders.** The order book is in memory. When the
   process restarts (deploy, crash, free-tier eviction), open orders are
   reconciled as canceled and reservations released — honest and simple, rather
@@ -111,9 +114,10 @@ Stated plainly, because they are real:
 - **Crash-loss window.** Persistence is write-behind; a hard crash can lose
   roughly the last 100ms of history. Acceptable for paper trading, stated
   openly.
-- **Free-tier Postgres expires.** Render's free Postgres is deleted ~30 days
-  after creation. Accounts and history vanish with it; the service reseeds
-  bots and runs on a fresh database after re-attach.
+- **Hosting runs on trial credit.** The web service runs on Railway's trial
+  plan, which stops the service when the one-time credit is exhausted. If the
+  live URL is down, that is the likely reason — the local run instructions
+  below reproduce the full system in two commands.
 - **Single instance, single core.** One process serves everything; per
   CLAUDE.md this is the v1 scope. Throughput scales by sharding instruments
   across processes, which is a design talking point, not a v1 feature.
