@@ -110,6 +110,12 @@ Stated plainly, because they are real:
   still suspend between pings, so a visitor may occasionally pay the ~1–2s
   resume on their first request; the pinger bounds how stale things get, it
   does not eliminate the suspend.
+- **Bot history is pruned after 2 days.** The liquidity bots trade 24/7 and
+  their paper trail (~145 MB/day) would exhaust Neon's free-tier storage in
+  days, so an hourly retention job deletes bot-vs-bot orders, fills, and
+  trades older than 2 days (D28). Nothing user-visible changes — the tape and
+  stats replay only the last 24h — and history involving a real account is
+  never deleted, nor is any balance or position row.
 - **Restarts cancel open orders.** The order book is in memory. When the
   process restarts (deploy, crash, free-tier eviction), open orders are
   reconciled as canceled and reservations released — honest and simple, rather

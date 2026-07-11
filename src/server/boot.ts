@@ -11,7 +11,7 @@
 //                             like any user (Phase 3 review: seed state must
 //                             enter through the persisted path)
 //   4. load accounts/trades — memory boots from that consistent snapshot
-//   5. write-behind, HTTP, WS, bots — begin accepting traffic
+//   5. write-behind, HTTP, WS, bots, retention — begin accepting traffic
 
 import { createServer, type Server } from 'node:http';
 import Anthropic from '@anthropic-ai/sdk';
@@ -27,6 +27,7 @@ import { Bots } from '../bots/bots.js';
 import { seedBots } from '../bots/seed.js';
 import { createPool, migrate } from '../db/db.js';
 import { fillsForOrder, getOrder, loadAccounts, loadTradeHistory, reconcileOpenOrders } from '../db/queries.js';
+import { Retention } from '../db/retention.js';
 import { WriteBehind } from '../db/write-behind.js';
 import { Accounts } from './accounts.js';
 import { buildApp } from './app.js';
@@ -84,6 +85,11 @@ export async function boot(config: Config, explainerOverride?: Explainer): Promi
   const bots = botIds ? new Bots(exchange, botIds) : null;
   bots?.start();
 
+  // Bot history retention (D28): prune once now (fire-and-forget) and hourly.
+  // Only meaningful when bots run — humans' history is tiny and never pruned.
+  const retention = botIds ? new Retention(pool, [botIds.makerUserId, botIds.noiseUserId]) : null;
+  retention?.start();
+
   await new Promise<void>((resolve) => server.listen(config.port, resolve));
   const address = server.address();
   const port = typeof address === 'object' && address ? address.port : config.port;
@@ -96,6 +102,7 @@ export async function boot(config: Config, explainerOverride?: Explainer): Promi
     reconciledOrders,
     port,
     async close() {
+      retention?.stop();
       bots?.stop();
       ws.close();
       await new Promise<void>((resolve) => server.close(() => resolve()));
