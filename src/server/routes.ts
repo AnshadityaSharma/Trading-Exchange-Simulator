@@ -203,10 +203,18 @@ export function buildRoutes(exchange: Exchange, pool: pg.Pool, wb: WriteBehind, 
 
   router.get('/health', wrap(async (req, res) => {
     // Plain: process liveness only — also the no-op control run in the HTTP
-    // benchmark, so it must stay DB-free. ?deep=1 (the keep-warm pinger's
-    // variant) round-trips the DB so one external ping wakes both this
-    // service and Neon's suspended compute, and says so distinguishably.
-    if (req.query.deep === undefined) {
+    // benchmark, so it must stay DB-free and fully public.
+    // Deep (?deep=1&key=…): round-trips the DB (SELECT 1) to prove reachability
+    // and wake Neon's compute. It is gated behind HEALTH_DEEP_KEY (D30): a
+    // stray or misconfigured deep ping with an absent/wrong key degrades to the
+    // shallow, DB-free response rather than erroring — so it can never silently
+    // wake the database and defeat scale-to-zero (the failure mode that billed
+    // compute 24/7 before). Absent env key → deep is never authorized.
+    const deepAuthorized =
+      req.query.deep !== undefined &&
+      config.healthDeepKey !== undefined &&
+      req.query.key === config.healthDeepKey;
+    if (!deepAuthorized) {
       res.json({ status: 'ok' });
       return;
     }

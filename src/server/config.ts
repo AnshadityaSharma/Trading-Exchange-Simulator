@@ -36,6 +36,8 @@ export interface Config {
   anthropicApiKey?: string;
   /** Model for explanations; defaults to claude-haiku-4-5 (demo default). Set AI_MODEL to override (e.g. claude-opus-4-8). */
   aiModel?: string;
+  /** Secret gating the DB-waking deep health check (D30). Absent → deep degrades to the shallow, DB-free response. */
+  healthDeepKey?: string;
 }
 
 export function loadConfig(): Config {
@@ -52,5 +54,6 @@ export function loadConfig(): Config {
     bots: process.env.BOTS !== 'off',
     anthropicApiKey: process.env.ANTHROPIC_API_KEY,
     aiModel: process.env.AI_MODEL,
+    healthDeepKey: process.env.HEALTH_DEEP_KEY,
   };
 }

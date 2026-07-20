@@ -14,6 +14,7 @@ import type { Server } from 'node:http';
 import { WebSocket, WebSocketServer } from 'ws';
 import { verifyToken } from './auth.js';
 import type { Exchange } from './exchange.js';
+import type { Presence } from './presence.js';
 
 const MAX_BUFFERED_BYTES = 1_000_000;
 const IDLE_TIMEOUT_MS = 90_000; // contract asks clients to ping every ≤30s
@@ -38,6 +39,7 @@ export class WsServer {
     server: Server,
     private readonly exchange: Exchange,
     jwtSecret: string,
+    private readonly presence: Presence,
   ) {
     this.wss = new WebSocketServer({ server, path: '/ws' });
     this.wss.on('connection', (ws, req) => this.onConnection(ws, req, jwtSecret));
@@ -68,11 +70,13 @@ export class WsServer {
     const userId = token ? verifyToken(token, jwtSecret) : null;
     const client: Client = { ws, userId, channels: new Set(), lastSeen: Date.now() };
     this.clients.add(client);
+    this.presence.touch(); // a real client connected — the market has a watcher
 
     this.send(client, { type: 'hello', authenticated: userId !== null });
 
     ws.on('message', (data) => {
       client.lastSeen = Date.now();
+      this.presence.touch(); // client frame (subscribe / ping every ≤25s) = presence
       let msg: unknown;
       try {
         msg = JSON.parse(String(data));

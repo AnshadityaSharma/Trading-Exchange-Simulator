@@ -157,6 +157,7 @@ migrates automatically at startup (idempotent), and tests run with `npm test`.
 | `BOTS`              | on (`off` to disable)            | liquidity + noise bots |
 | `ANTHROPIC_API_KEY` | *(unset)*                        | switches fill explanations from the rule-based engine to Claude |
 | `AI_MODEL`          | `claude-haiku-4-5`               | model used when a key is set |
+| `HEALTH_DEEP_KEY`   | *(unset)*                        | secret for the DB-waking deep health check: `GET /api/health?deep=1&key=…` runs `SELECT 1` only with the right key, else degrades to the shallow DB-free response (unset → deep always degrades) |
 
 ## Layout
 

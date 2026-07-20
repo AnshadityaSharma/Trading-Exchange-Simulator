@@ -10,12 +10,22 @@ import type { Explainer } from '../ai/explainer.js';
 import type { Config } from './config.js';
 import { ApiError } from './errors.js';
 import type { Exchange } from './exchange.js';
+import type { Presence } from './presence.js';
 import { buildRoutes } from './routes.js';
 import type { WriteBehind } from '../db/write-behind.js';
 
-export function buildApp(exchange: Exchange, pool: pg.Pool, wb: WriteBehind, config: Config, explainer: Explainer): express.Express {
+export function buildApp(exchange: Exchange, pool: pg.Pool, wb: WriteBehind, config: Config, explainer: Explainer, presence: Presence): express.Express {
   const app = express();
   app.disable('x-powered-by');
+
+  // Demand signal (D30): every request is a real client EXCEPT the keep-warm
+  // health ping — counting that would keep the market (and Neon) awake forever.
+  // Matches on path, so both /api/health and /api/health?deep=1 are excluded.
+  app.use((req, _res, next) => {
+    if (req.path !== '/api/health') presence.touch();
+    next();
+  });
+
   app.use(express.json({ limit: '10kb' }));
 
   app.use('/api', buildRoutes(exchange, pool, wb, config, explainer));

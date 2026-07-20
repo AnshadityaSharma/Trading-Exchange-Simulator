@@ -12,6 +12,7 @@
 import type { Side } from '../engine/index.js';
 import type { InstrumentMeta } from '../server/config.js';
 import type { Exchange } from '../server/exchange.js';
+import type { Presence } from '../server/presence.js';
 import { NOISE_QTY_PER_INSTRUMENT, type BotIds } from './seed.js';
 
 export interface BotConfig {
@@ -154,6 +155,10 @@ export class Bots {
   constructor(
     private readonly exchange: Exchange,
     ids: BotIds,
+    // Demand gate (D30): when absent, bots always run (tests/benchmarks). In
+    // production boot passes a Presence so bots pause while nobody is watching
+    // and Neon's compute can scale to zero.
+    private readonly presence?: Presence,
     private readonly cfg: BotConfig = DEFAULT_BOT_CONFIG,
     rng: () => number = Math.random,
   ) {
@@ -161,10 +166,20 @@ export class Bots {
     this.noise = new NoiseTrader(exchange, ids.noiseUserId, cfg, NOISE_QTY_PER_INSTRUMENT, rng);
   }
 
+  /** No presence configured → always on; otherwise gate on recent real demand. */
+  private active(): boolean {
+    return this.presence ? this.presence.isActive() : true;
+  }
+
   start(): void {
     for (const meta of this.exchange.instrumentMetas()) {
-      this.safeTick(() => this.maker.tick(meta)); // quote immediately: the book must never be empty
-      const t = setInterval(() => this.safeTick(() => this.maker.tick(meta)), this.cfg.refreshMs);
+      // Quote immediately IF someone's watching; otherwise the first real
+      // request resumes quoting within one refresh (≤ refreshMs). Skipping
+      // while idle is what lets write-behind drain and Neon suspend.
+      if (this.active()) this.safeTick(() => this.maker.tick(meta));
+      const t = setInterval(() => {
+        if (this.active()) this.safeTick(() => this.maker.tick(meta));
+      }, this.cfg.refreshMs);
       t.unref();
       this.makerTimers.push(t);
       this.scheduleNoise(meta);
@@ -185,8 +200,8 @@ export class Bots {
     // instruments never tick in lockstep.
     const delay = this.cfg.noiseIntervalMs * (0.5 + Math.random());
     const t = setTimeout(() => {
-      this.safeTick(() => this.noise.tick(meta));
-      this.scheduleNoise(meta);
+      if (this.active()) this.safeTick(() => this.noise.tick(meta));
+      this.scheduleNoise(meta); // keep rescheduling while idle; resumes on demand
     }, delay);
     t.unref();
     this.noiseTimers.set(meta.symbol, t);

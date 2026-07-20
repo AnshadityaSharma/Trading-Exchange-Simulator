@@ -13,6 +13,7 @@
 // money/inventory conservation is unaffected.
 
 import type pg from 'pg';
+import type { Presence } from '../server/presence.js';
 
 /** Bot-vs-bot history older than this is deleted. Must stay > the 24h boot replay window. */
 export const BOT_HISTORY_RETENTION_DAYS = 2;
@@ -98,6 +99,11 @@ export class Retention {
   constructor(
     private readonly pool: pg.Pool,
     private readonly botUserIds: readonly number[],
+    // Demand gate (D30): skip pruning while idle so a zero-visitor deployment
+    // makes NO database contact and Neon stays suspended. Safe because no
+    // visitors → bots paused → no new history accrues → nothing to prune;
+    // the next active window catches up (the 2-day window tolerates the delay).
+    private readonly presence?: Presence,
     private readonly retentionDays: number = BOT_HISTORY_RETENTION_DAYS,
   ) {}
 
@@ -112,8 +118,9 @@ export class Retention {
     this.timer = null;
   }
 
-  /** One prune pass. Skips if the previous pass is still running (slow DB). */
+  /** One prune pass. Skips if idle (no DB wake) or if a pass is still running. */
   async runOnce(): Promise<PruneCounts | null> {
+    if (this.presence && !this.presence.isActive()) return null;
     if (this.inFlight) return null;
     this.inFlight = true;
     try {

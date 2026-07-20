@@ -11,6 +11,7 @@ import pg from 'pg';
 import { createPool, migrate } from '../db/db.js';
 import { boot, type Backend } from '../server/boot.js';
 import { INSTRUMENTS, type Config } from '../server/config.js';
+import { Presence } from '../server/presence.js';
 import {
   Bots,
   DEFAULT_BOT_CONFIG,
@@ -168,6 +169,24 @@ describe('bots driver', () => {
       expect(book.asks.length).toBeGreaterThan(0);
     }
     bots.stop();
+  });
+
+  it('does not quote while presence is idle; resumes once demand arrives (D30)', () => {
+    const openCount = () =>
+      INSTRUMENTS.reduce((n, m) => n + backend.exchange.openOrdersFor(ids.makerUserId, m.symbol).length, 0);
+
+    const idle = new Presence(60_000); // never touched → isActive() is false
+    const before = openCount();
+    const idleBots = new Bots(backend.exchange, ids, idle);
+    idleBots.start();
+    expect(openCount()).toBe(before); // gated: start() placed no orders while idle
+    idleBots.stop();
+
+    idle.touch(); // a real client shows up
+    const liveBots = new Bots(backend.exchange, ids, idle);
+    liveBots.start(); // immediate quote now runs
+    expect(openCount()).toBeGreaterThan(0);
+    liveBots.stop();
   });
 });
 

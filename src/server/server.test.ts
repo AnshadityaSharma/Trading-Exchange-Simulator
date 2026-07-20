@@ -13,7 +13,7 @@ const ADMIN_URL = process.env.TEST_ADMIN_DATABASE_URL ?? 'postgres://postgres:ex
 const TEST_DB_URL = process.env.TEST_DATABASE_URL ?? 'postgres://postgres:exsim@localhost:5433/exchange_test';
 
 // bots: false — these tests assert exact book states; bot flow would race them.
-const config: Config = { port: 0, databaseUrl: TEST_DB_URL, jwtSecret: 'test-secret', bots: false };
+const config: Config = { port: 0, databaseUrl: TEST_DB_URL, jwtSecret: 'test-secret', bots: false, healthDeepKey: 'test-deep-key' };
 
 let backend: Backend;
 let base: string;
@@ -121,10 +121,20 @@ describe('health and auth', () => {
     expect(res.json).toEqual({ status: 'ok' });
   });
 
-  it('deep health round-trips the database and says so', async () => {
-    const res = await api('GET', '/health?deep=1');
+  it('deep health with the right key round-trips the database and says so', async () => {
+    const res = await api('GET', '/health?deep=1&key=test-deep-key');
     expect(res.status).toBe(200);
     expect(res.json).toEqual({ status: 'ok', db: 'ok' });
+  });
+
+  it('deep health with a wrong or missing key degrades to shallow (no DB wake)', async () => {
+    const wrong = await api('GET', '/health?deep=1&key=nope');
+    expect(wrong.status).toBe(200);
+    expect(wrong.json).toEqual({ status: 'ok' }); // no db field → no SELECT ran
+
+    const noKey = await api('GET', '/health?deep=1');
+    expect(noKey.status).toBe(200);
+    expect(noKey.json).toEqual({ status: 'ok' });
   });
 
   it('signs up a user with starting cash and lets them log in', async () => {

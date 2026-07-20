@@ -33,6 +33,7 @@ import { Accounts } from './accounts.js';
 import { buildApp } from './app.js';
 import { INSTRUMENTS, type Config } from './config.js';
 import { Exchange } from './exchange.js';
+import { Presence } from './presence.js';
 import { WsServer } from './ws.js';
 
 export interface Backend {
@@ -75,19 +76,25 @@ export async function boot(config: Config, explainerOverride?: Explainer): Promi
     }
   }
 
+  // Demand signal (D30): real HTTP/WS traffic touches it; the health pinger
+  // does not. Bots and retention gate on it so an unwatched market goes quiet
+  // and Neon's compute scales to zero. Starts idle — no visitors, no writes.
+  const presence = new Presence();
+
   wb.start();
-  const app = buildApp(exchange, pool, wb, config, explainer);
+  const app = buildApp(exchange, pool, wb, config, explainer, presence);
   const server = createServer(app);
-  const ws = new WsServer(server, exchange, config.jwtSecret);
+  const ws = new WsServer(server, exchange, config.jwtSecret, presence);
 
   // After the WS server wires exchange.events (first quotes fan out), before
   // listen (the book is populated before the first request can arrive).
-  const bots = botIds ? new Bots(exchange, botIds) : null;
+  const bots = botIds ? new Bots(exchange, botIds, presence) : null;
   bots?.start();
 
-  // Bot history retention (D28): prune once now (fire-and-forget) and hourly.
-  // Only meaningful when bots run — humans' history is tiny and never pruned.
-  const retention = botIds ? new Retention(pool, [botIds.makerUserId, botIds.noiseUserId]) : null;
+  // Bot history retention (D28): prune hourly, gated on demand (D30) so it
+  // never wakes an idle DB. Only meaningful when bots run — humans' history is
+  // tiny and never pruned.
+  const retention = botIds ? new Retention(pool, [botIds.makerUserId, botIds.noiseUserId], presence) : null;
   retention?.start();
 
   await new Promise<void>((resolve) => server.listen(config.port, resolve));
